@@ -178,6 +178,20 @@ void calculateObr(float** W, float** invW)
 	}
 }
 
+void printMx(float** W)
+{
+	std::cout << "\n";
+	for (size_t i = 0; i < 3; ++i)
+	{
+		for (size_t j = 0; j < 3; ++j)
+		{
+			std::cout << W[i][j] << "\t";
+		}
+		std::cout << "\n";
+	}
+	std::cout << "\n";
+}
+
 
 void solveSLAU(float** W, float* f, float* dx)
 {
@@ -187,15 +201,13 @@ void solveSLAU(float** W, float* f, float* dx)
 	}
 
 	float buf = 0;
-	/*for (size_t i = 0; i < 3; ++i)
-	{
-		std::cout << "x" << i << ": " << dx[i] << "\n";
-	}*/
+	float zeroEbs = 0.0001; //Меньше этого числа, число считается нулём
 
 	//Прямой ход
 	for (size_t j = 0; j < 3; ++j)
 	{
-		if (W[j][j] != 0)
+		//printMx(W);
+		if ( (W[j][j] != 0) && (fabs(W[j][j]) > zeroEbs))
 		{
 			buf = W[j][j];
 
@@ -218,7 +230,7 @@ void solveSLAU(float** W, float* f, float* dx)
 		}
 		else
 		{
-			if ((j + 1 < 3) && (W[j + 1][j] != 0))
+			if ((j + 1 < 3) && (W[j+1][j] != 0) && (fabs(W[j+1][j]) > zeroEbs))
 			{
 				//Замена ряда на подходящий
 				float* swapRow = W[j];
@@ -252,7 +264,7 @@ void solveSLAU(float** W, float* f, float* dx)
 			}
 			else
 			{
-				if ((j + 2 < 3) && (W[j + 2][j] != 0))
+				if ((j + 2 < 3) && (W[j+2][j] != 0) && (fabs(W[j+2][j]) > zeroEbs))
 				{
 					//Замена ряда на подходящий
 					float* swapRow = W[j];
@@ -284,18 +296,11 @@ void solveSLAU(float** W, float* f, float* dx)
 					}
 				}
 				else
-					throw "Cannot calculate inverse Matrix";
+				{
+					std::cout << "Got 0 on main diagonal!\n";
+				}
 			}
 		}
-		/*for (size_t i = 0; i < 3; ++i)
-		{
-			for (size_t qx = 0; qx < 3; qx++)
-			{
-				std::cout << W[i][qx] << "\t";
-			}
-			std::cout << dx[i] << "\n";
-		}
-		std::cout << "\n";*/
 	}
 	//Обратный ход
 	for (int j = 2; j > 0; --j)
@@ -309,8 +314,21 @@ void solveSLAU(float** W, float* f, float* dx)
 				W[s][q] -= buf * W[j][q];
 			}
 		}
-
 	}
+
+	//Проверка на зависимость переменных друг от друга:
+	if ((W[0][0] != 1) || (W[1][1] != 1) || (W[2][2] != 1))
+	{
+		//printMx(W);
+		
+		if (W[0][0] != 1)
+			dx[0] = 0;
+		if (W[1][1] != 1)
+			dx[1] = 0;
+		if (W[2][2] != 1)
+			dx[2] = 0;
+	}
+
 }
 
 float getDet(float** W)
@@ -400,7 +418,7 @@ void scaleMx(float** mx, float num)
 	}
 }
 
-std::ofstream ppfile;
+//std::ofstream ppfile;
 
 //Поиск точки на поверхности методом Нюьтона
 bool getPt(float** W, float** invW, vec3* ptIJ, vec3* ptIm1J, vec3* ptIJm1)
@@ -451,7 +469,7 @@ bool getPt(float** W, float** invW, vec3* ptIJ, vec3* ptIm1J, vec3* ptIJm1)
 	delete[] f;
 	delete[] dx;
 	
-	ppfile << lenMin << "\n";
+	//ppfile << lenMin << "\n";
 	/*if (flag)
 	{
 		std::cout << "Len is: " << len << "\n";
@@ -508,7 +526,7 @@ vertex** makeGird()
 
 	size_t errCtr = 0;
 
-	ppfile.open("logg");
+	//ppfile.open("logg");
 	for (size_t a_index = (GIRD_SIZE - 1) / 2; a_index < GIRD_SIZE - 1; ++a_index)
 	{
 
@@ -524,15 +542,19 @@ vertex** makeGird()
 			ptIJ->y = ptIJm1->y;
 			ptIJ->z = ptIm1J->z;
 
+			if (cool_counter == 2970)
+			{
+				float ttook = 0;
+			}
 			if (!getPt(W, invW, ptIJ, ptIm1J, ptIJm1))
 			{
 				++errCtr;
 			}
-			if (cool_counter == 2950) break;
+			//if (cool_counter == 2950) break;
 		}
-		if (cool_counter == 2950) break;
+		//if (cool_counter == 2950) break;
 	}
-	ppfile.close();
+	//ppfile.close();
 	std::cout << "Errors count: " << errCtr << "\n";
 	system("pause");
 
