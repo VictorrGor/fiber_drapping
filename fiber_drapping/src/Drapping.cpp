@@ -520,67 +520,17 @@ vertex** makeGird()
 			vec3* ptPrevIJ = &res[b_index][a_index].pos;
 
 
-			float ptSavedIJ_x = ptIJm1->x;
-			size_t xi = 0;
-			float ptSavedIJ_y = (ptIJm1->y + ptIm1J->y) / 4;
-			size_t yi = 0;
-			float ptSavedIJ_z = ptIm1J->z;
-			size_t zi = 0;
+			ptIJ->x = ptIJm1->x;
+			ptIJ->y = ptIJm1->y;
+			ptIJ->z = ptIm1J->z;
 
-			size_t stepCount = 100;
-
-			ptSavedIJ_x = ptPrevIJ->x;
-			for (xi = 0; xi <= stepCount; xi++)
+			if (!getPt(W, invW, ptIJ, ptIm1J, ptIJm1))
 			{
-				for (zi = 0; zi <= stepCount; zi++)
-				{
-					ptIJ->x = ptSavedIJ_x;
-					ptIJ->y = ptIJm1->y;
-					ptIJ->z = ptSavedIJ_z;
-					
-					if (getPt(W, invW, ptIJ, ptIm1J, ptIJm1))
-					{
-						std::cout << "xi: " << xi << ";\tyi: " << yi << ";\tzi: " << zi << "\n\n\n";
-					}
-
-					ptSavedIJ_z += (ptIm1J->z - ptPrevIJ->z) / stepCount;
-				}
-				ptSavedIJ_x += (ptIJm1->x - ptPrevIJ->x) / stepCount;
-			}
-				/*
-				while (ptSavedIJ_y < ptIm1J->y)
-				{
-					ptSavedIJ_z = ptIm1J->z;
-					while (ptSavedIJ_z > ptIm1J->z * 1.5  )
-					{
-						ptIJ->x = ptSavedIJ_x;
-						ptIJ->y = ptSavedIJ_y;
-						ptIJ->z = ptSavedIJ_z;
-						
-						if (getPt(W, invW, ptIJ, ptIm1J, ptIJm1))
-						{
-							std::cout << "xi: " << xi << ";\tyi: " << yi << ";\tzi: " << zi <<"\n\n\n";
-						}
-						ptSavedIJ_z -= ebs;
-						zi++;
-					}
-					yi++;
-					ptSavedIJ_y += ebs;
-				}
-				xi++;
-				ptSavedIJ_x -= ebs;
-			}
-			*/
-
-			system("pause");
-			/*if (!getPt(W, invW, ptIJ, ptIm1J, ptIJm1))
-			{
-				//system("pause");
 				++errCtr;
-			}*/
-			break;
+			}
+			if (cool_counter == 2950) break;
 		}
-		break;
+		if (cool_counter == 2950) break;
 	}
 	ppfile.close();
 	std::cout << "Errors count: " << errCtr << "\n";
