@@ -100,7 +100,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	HDC hDC;
 	PAINTSTRUCT ps;
 
-	static double a = 1;
+	static int wheel_dist = 1;
 	switch (uMsg)
 	{
 	case WM_PAINT:
@@ -125,7 +125,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				break;
 			}
 		};
-
+	case WM_MOUSEWHEEL:
+	{
+		int buff = (short)HIWORD(wParam);
+		wheel_dist += 3 * (short)HIWORD(wParam) / WHEEL_DELTA;
+		if (wheel_dist < 1) wheel_dist = 1;
+		rs.getMouse()->updateWheelPos(wheel_dist);
+		break;
+	}
 	default:
 		return DefWindowProc(hWnd, uMsg, wParam, lParam);
 	}

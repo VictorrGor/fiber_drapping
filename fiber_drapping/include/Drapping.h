@@ -5,7 +5,7 @@
 
 #define CLOTH_WIDTH 1.
 #define CLOTH_HEIGHT 1.
-#define GIRD_SIZE 21
+#define GIRD_SIZE 111
 //Убрать из макропараметров
 constexpr float R = 1;
 //constexpr float A = CLOTH_HEIGHT / GIRD_SIZE + 0.015;

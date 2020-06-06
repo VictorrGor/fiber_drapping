@@ -138,7 +138,8 @@ void RenderSys::Render()
 	UINT offset = 0;
 
 	float speed = 0;
-	float R = 1.2;
+
+	float R = 1. * mouse->wheel_pos * 0.1;
 	float h = 1.3;
 
 	static float t = 0.0f;
@@ -160,7 +161,7 @@ void RenderSys::Render()
 	//
 	// Clear the back buffer
 	//
-	float ClearColor[4] = { 0.0f, 0.125f, 0.3f, 1.0f }; // red,green,blue,alpha
+	float ClearColor[4] = { 1.0f, 1.f, 1.f, 1.0f }; // red,green,blue,alpha
 	g_pImmediateContext->ClearRenderTargetView(g_pRenderTargetView, ClearColor);
 
 	vertexCB cb0;
@@ -211,6 +212,7 @@ void RenderSys::CleanupDevice()
 	if (g_pImmediateContext) g_pImmediateContext->Release();
 	if (g_pd3dDevice) g_pd3dDevice->Release();
 	if (pPS_CB_per_obj) pPS_CB_per_obj->Release();
+	if (mouse) delete mouse;
 }
 
 HRESULT RenderSys::InitShaders()
@@ -330,6 +332,7 @@ HRESULT RenderSys::InitConstantBuffers(UINT width, UINT height)
 
 HRESULT RenderSys::InitDevice(HWND* hWnd)
 {
+	mouse = new Mouse();
 
 	HRESULT hRes = S_OK;
 
@@ -795,4 +798,22 @@ HRESULT RenderSys::drawTriangle(vertex* _pt)
 	mp.addNew(_pt, 3);
 	return hRes;
 
+}
+
+Mouse* RenderSys::getMouse()
+{
+	return mouse;
+}
+
+
+Mouse::Mouse()
+{
+	isLeftKeyPressed = false;
+	isRightKeyPressed = false;
+	wheel_pos = 1;
+}
+
+void Mouse::updateWheelPos(int newPos)
+{
+	wheel_pos = newPos;
 }

@@ -63,6 +63,20 @@ public:
 	void setMaterial(bool isUsed, XMFLOAT4 Ambient = XMFLOAT4(), XMFLOAT4 Diffuse = XMFLOAT4(), XMFLOAT4 Specular = XMFLOAT4(), XMFLOAT4 Reflect = XMFLOAT4());
 };
 
+
+//Dummy
+class Mouse
+{
+	bool isLeftKeyPressed;
+	bool isRightKeyPressed;
+	int wheel_pos;
+public:
+	friend RenderSys;
+
+	Mouse();
+	void updateWheelPos(int newPos);
+};
+
 class RenderSys
 {
 	D3D_DRIVER_TYPE         g_driverType;
@@ -178,6 +192,7 @@ class RenderSys
 	};
 	MemoryPool mp;
 
+	Mouse* mouse;
 public:
 	friend Object;
 
@@ -234,5 +249,5 @@ public:
 
 	HRESULT drawTriangle(vertex* _pt);
 
-
+	Mouse* getMouse();
 };

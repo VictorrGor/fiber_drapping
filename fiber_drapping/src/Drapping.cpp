@@ -18,16 +18,6 @@ void getJakobain(float** W, vec3* ptIJ, vec3* ptIm1J, vec3* ptIJm1)
 	W[2][1] = 2 * ptIJ->y;
 	W[2][2] = 2 * ptIJ->z;
 
-	/*
-	for (size_t i = 0; i < 3; ++i)
-	{
-		for (size_t j = 0; j < 3; ++j)
-		{
-			std::cout << W[i][j] << "\t";
-		}
-		std::cout << std::endl;
-	}*/
-
 }
 
 //
@@ -542,17 +532,11 @@ vertex** makeGird()
 			ptIJ->y = ptIJm1->y;
 			ptIJ->z = ptIm1J->z;
 
-			if (cool_counter == 2970)
-			{
-				float ttook = 0;
-			}
 			if (!getPt(W, invW, ptIJ, ptIm1J, ptIJm1))
 			{
 				++errCtr;
 			}
-			//if (cool_counter == 2950) break;
 		}
-		//if (cool_counter == 2950) break;
 	}
 	//ppfile.close();
 	std::cout << "Errors count: " << errCtr << "\n";
