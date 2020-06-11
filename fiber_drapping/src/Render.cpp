@@ -36,8 +36,8 @@ void Log(const vertex* _arr, size_t _size)
 
 Object::Object(RenderSys * _rs, ID3D11VertexShader * _pVxSh, ID3D11PixelShader * _pPxSh, 
 	size_t _vertexCount, vertex * vecArr, D3D_PRIMITIVE_TOPOLOGY _toplology,
-				ID3D11Buffer * _pVxBuf, ID3D11Buffer * _pIndexBuf, size_t _indexCount) : pVertexBuf(_pVxBuf), vecCount(_vertexCount),
-				pVxSh(_pVxSh), pPxSh(_pPxSh), toplology(_toplology), pIndexBuf(_pIndexBuf), indexCount(_indexCount), rs(_rs)
+				ID3D11Buffer * _pVxBuf) : pVertexBuf(_pVxBuf), vecCount(_vertexCount),
+				pVxSh(_pVxSh), pPxSh(_pPxSh), toplology(_toplology), pIndexBuf(nullptr), indexCount(0), rs(_rs)
 {
 	if (!_pVxBuf)
 	{
@@ -76,6 +76,65 @@ Object::Object(RenderSys * _rs, ID3D11VertexShader * _pVxSh, ID3D11PixelShader *
 			pCB = new PixelShaderCB();
 			setMaterial(false);
 		}
+	}
+}
+
+Object::Object(RenderSys* _rs, ID3D11VertexShader* _pVxSh, ID3D11PixelShader* _pPxSh, size_t _vertexCount, vertex* vecArr, D3D_PRIMITIVE_TOPOLOGY _toplology,
+	size_t _indexCount, size_t* indexArray, ID3D11Buffer* _pVxBuf, ID3D11Buffer* _pIndexBuf) : pVertexBuf(_pVxBuf), vecCount(_vertexCount),
+	pVxSh(_pVxSh), pPxSh(_pPxSh), toplology(_toplology), pIndexBuf(nullptr), indexCount(_indexCount), rs(_rs)
+{
+	if (!_pVxBuf)
+	{
+
+		D3D11_BUFFER_DESC bufferDesc;
+		bufferDesc.Usage = D3D11_USAGE_DEFAULT;
+		bufferDesc.ByteWidth = sizeof(vertex) * _vertexCount;
+		bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+		bufferDesc.CPUAccessFlags = 0;
+		bufferDesc.MiscFlags = 0;
+
+		D3D11_SUBRESOURCE_DATA InitData;
+		ZeroMemory(&InitData, sizeof(InitData));
+		InitData.pSysMem = vecArr;
+		_rs->g_pd3dDevice->CreateBuffer(&bufferDesc, &InitData, &pVertexBuf);
+
+
+		D3D11_BUFFER_DESC bd;
+		ZeroMemory(&bd, sizeof(bd));
+		bd.Usage = D3D11_USAGE_DEFAULT;
+		bd.ByteWidth = sizeof(PixelShaderCB);
+		bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+		bd.CPUAccessFlags = 0;
+
+		HRESULT hRes = rs->g_pd3dDevice->CreateBuffer(&bd, NULL, &pPS_CB);
+
+		if (FAILED(hRes))
+		{
+#ifdef DEBUG_CONSOLE
+			std::cout << "[Error] Cann't create Constant Buffer for Object!" << std::endl;
+#endif
+			pPS_CB = nullptr;
+		}
+		else
+		{
+			pCB = new PixelShaderCB();
+			setMaterial(false);
+		}
+	}
+	if (!_pIndexBuf && _indexCount)
+	{
+		D3D11_BUFFER_DESC bd;
+		ZeroMemory(&bd, sizeof(bd));
+		bd.Usage = D3D11_USAGE_DEFAULT;
+		bd.ByteWidth = sizeof(size_t) * indexCount;
+		bd.BindFlags = D3D11_BIND_INDEX_BUFFER;
+		bd.CPUAccessFlags = 0;
+		bd.MiscFlags = 0;
+
+		D3D11_SUBRESOURCE_DATA InitData;
+		ZeroMemory(&InitData, sizeof(InitData));
+		InitData.pSysMem = indexArray;
+		_rs->g_pd3dDevice->CreateBuffer(&bd, &InitData, &pIndexBuf);
 	}
 }
 
@@ -137,19 +196,32 @@ void RenderSys::Render()
 	UINT stride = sizeof(vertex);
 	UINT offset = 0;
 
-	float speed = 0;
+	static float speed = 0;
 
 	float R = 1. * mouse->wheel_pos * 0.1;
-	float h = 1.3;
+	static float h = 1.3;
 
 	static float t = 0.0f;
 	{
+		//Для поворота по времени
+		/* 
 		static DWORD dwTimeStart = 0;
 		DWORD dwTimeCur = GetTickCount();
 		if (dwTimeStart == 0) dwTimeStart = dwTimeCur;
 		t = (dwTimeCur - dwTimeStart) / 1000.0f;
-
 		speed = t / 2;
+		*/
+
+		static float xPos = 0;
+		static float yPos = 0;
+		
+		//Производим перерасчёт смешения камеры, только если нажата кнопка
+		xPos = (mouse->mousePos.x - mouse->savedMPos.x) * 0.01;
+		yPos = (mouse->mousePos.y - mouse->savedMPos.y) * 0.01;
+		speed += xPos;
+		h += yPos;
+		mouse->savedMPos.x = mouse->mousePos.x;
+		mouse->savedMPos.y = mouse->mousePos.y;
 
 		DirectX::XMVECTOR Eye = DirectX::XMVectorSet(R * cos(speed), h, R * sin(speed), 0.0f);
 		DirectX::XMVECTOR At = DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
@@ -430,12 +502,55 @@ HRESULT RenderSys::InitDevice(HWND* hWnd)
 
 void RenderSys::drawDrappingPoints(vertex** points)
 {
+	vertex* dummyArray = new vertex[GIRD_SIZE * GIRD_SIZE];//Массив-копия для визуализации соединения линиями
 
 	for (size_t i = 0; i < GIRD_SIZE; ++i)
 	{
-		Object* obj = new Object(this, pVxSh, pPxSh, GIRD_SIZE, points[i], D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
-		objects.push_back(obj);
+		for (size_t q = 0; q < GIRD_SIZE; q++)
+		{
+			dummyArray[q + i * GIRD_SIZE] = points[q][i];
+		}
+
 	}
+
+	Object* obj = new Object(this, pVxSh, pPxSh, GIRD_SIZE*GIRD_SIZE, dummyArray, D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+	objects.push_back(obj);
+	
+	size_t startIndex = (GIRD_SIZE * GIRD_SIZE - 1) / 2;
+
+
+	size_t arraySize = (pow((GIRD_SIZE - 1) / 2, 2) * 2 + (GIRD_SIZE - 1)) * 2;
+	size_t* indexAr = new size_t[arraySize];
+	memset(indexAr, 0, sizeof(size_t) * arraySize);
+
+
+	vertex* lineDummy = new vertex[arraySize];//pow((GIRD_SIZE - 1) / 2 + 1, 2)];
+	size_t actualIndex = 0;
+
+
+	for (int a_index = (GIRD_SIZE - 1) / 2; a_index >= 0; --a_index)
+	{
+		for (int b_index = (GIRD_SIZE - 1) / 2; b_index >= 0; --b_index)
+		{
+			if (b_index - 1 >= 0)
+			{
+				lineDummy[actualIndex] = points[b_index][a_index];
+				actualIndex++;
+				lineDummy[actualIndex] = points[b_index - 1][a_index];
+				actualIndex++;
+			}
+			if (a_index - 1 >= 0)
+			{
+				lineDummy[actualIndex] = points[b_index][a_index];
+				actualIndex++;
+				lineDummy[actualIndex] = points[b_index][a_index-1];
+				actualIndex++;
+			}
+		}
+	}
+	obj = new Object(this, pVxSh, pPxSh, actualIndex, lineDummy, D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
+	objects.push_back(obj);
+
 }
 
 HRESULT RenderSys::InitObjects()
@@ -463,7 +578,7 @@ void RenderSys::coonsLines_new()
 	double teta = DirectX::XM_PIDIV2 / (M_ctr - 1);
 	double delTeta = teta / subSplineCtM;
 	double fi = DirectX::XM_2PI / (N_ctr - 1);
-	double R = 1;
+	double R = 0.98;
 
 	//vertex* sphere = new vertex[N_ctr * subSplineCtN * M_ctr * subSplineCtM];
 
@@ -813,7 +928,27 @@ Mouse::Mouse()
 	wheel_pos = 1;
 }
 
-void Mouse::updateWheelPos(int newPos)
+void Mouse::updWheelPos(int newPos)
 {
 	wheel_pos = newPos;
+}
+
+void Mouse::updLK(bool isPressed)
+{
+	isLeftKeyPressed = isPressed;
+	savedMPos = mousePos;
+}
+
+void Mouse::updRK(bool isPressed)
+{
+	isRightKeyPressed = isPressed;
+}
+
+void Mouse::updMousePos(POINT mPos)
+{
+	if (!isLeftKeyPressed)
+	{
+		savedMPos = mPos;
+	}
+	mousePos = mPos;
 }

@@ -37,7 +37,6 @@ void Log(const vertex* _arr, size_t _size);
 
 //Left-handed^ (xOz surface) and Y-up
 
-
 class Object
 {
 	ID3D11Buffer*			pVertexBuf;
@@ -57,24 +56,32 @@ class Object
 public:
 	friend RenderSys;
 	Object(RenderSys* _rs, ID3D11VertexShader* _pVxSh, ID3D11PixelShader* _pPxSh, size_t _vertexCount, vertex* vecArr, D3D_PRIMITIVE_TOPOLOGY _toplology,
-		ID3D11Buffer* _pVxBuf = nullptr, ID3D11Buffer* _pIndexBuf = nullptr, size_t _indexCount = 0);
+		ID3D11Buffer* _pVxBuf = nullptr);
+	Object(RenderSys* _rs, ID3D11VertexShader* _pVxSh, ID3D11PixelShader* _pPxSh, size_t _vertexCount, vertex* vecArr, D3D_PRIMITIVE_TOPOLOGY _toplology,
+		size_t _indexCount, size_t* indexArray, ID3D11Buffer* _pVxBuf = nullptr, ID3D11Buffer* _pIndexBuf = nullptr);
 	~Object();
 
 	void setMaterial(bool isUsed, XMFLOAT4 Ambient = XMFLOAT4(), XMFLOAT4 Diffuse = XMFLOAT4(), XMFLOAT4 Specular = XMFLOAT4(), XMFLOAT4 Reflect = XMFLOAT4());
 };
 
 
-//Dummy
+
 class Mouse
 {
 	bool isLeftKeyPressed;
 	bool isRightKeyPressed;
 	int wheel_pos;
+
+	POINT mousePos;
+	POINT savedMPos;
 public:
 	friend RenderSys;
 
 	Mouse();
-	void updateWheelPos(int newPos);
+	void updWheelPos(int newPos);
+	void updLK(bool isPressed);
+	void updRK(bool isPressed);
+	void updMousePos(POINT mPos);
 };
 
 class RenderSys

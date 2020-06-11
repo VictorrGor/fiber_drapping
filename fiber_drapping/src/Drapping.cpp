@@ -517,19 +517,20 @@ vertex** makeGird()
 	size_t errCtr = 0;
 
 	//ppfile.open("logg");
-	for (size_t a_index = (GIRD_SIZE - 1) / 2; a_index < GIRD_SIZE - 1; ++a_index)
-	{
 
-		for (size_t b_index = (GIRD_SIZE - 1) / 2; b_index < GIRD_SIZE - 1; ++b_index)
+	//1
+	for (int a_index = (GIRD_SIZE - 1) / 2; a_index >= 1; --a_index)
+	{
+		for (int b_index = (GIRD_SIZE - 1) / 2; b_index >= 1; --b_index)
 		{
-			vec3* ptIJ = &res[b_index + 1][a_index + 1].pos;
-			vec3* ptIm1J = &res[b_index][a_index + 1].pos;
-			vec3* ptIJm1 = &res[b_index + 1][a_index].pos;
+			vec3* ptIJ = &res[b_index - 1][a_index - 1].pos;
+			vec3* ptIm1J = &res[b_index][a_index - 1].pos;
+			vec3* ptIJm1 = &res[b_index - 1][a_index].pos;
 			vec3* ptPrevIJ = &res[b_index][a_index].pos;
 
 
 			ptIJ->x = ptIJm1->x;
-			ptIJ->y = ptIJm1->y;
+			ptIJ->y = -ptIJm1->y ;
 			ptIJ->z = ptIm1J->z;
 
 			if (!getPt(W, invW, ptIJ, ptIm1J, ptIJm1))
@@ -538,6 +539,72 @@ vertex** makeGird()
 			}
 		}
 	}
+	//2
+	//for (size_t a_index = (GIRD_SIZE - 1) / 2; a_index < GIRD_SIZE - 1; ++a_index)
+	//{
+
+	//	for (int b_index = (GIRD_SIZE - 1) / 2; b_index >= 1; --b_index)
+	//	{
+	//		vec3* ptIJ = &res[b_index - 1][a_index + 1].pos;
+	//		vec3* ptIm1J = &res[b_index][a_index + 1].pos;
+	//		vec3* ptIJm1 = &res[b_index - 1][a_index].pos;
+	//		vec3* ptPrevIJ = &res[b_index][a_index].pos;
+
+
+	//		ptIJ->x = ptIJm1->x;
+	//		ptIJ->y = -ptIJm1->y;
+	//		ptIJ->z = ptIm1J->z;
+
+	//		if (!getPt(W, invW, ptIJ, ptIm1J, ptIJm1))
+	//		{
+	//			++errCtr;
+	//		}
+	//	}
+	//}
+	////3
+	//for (int a_index = (GIRD_SIZE - 1) / 2; a_index >= 1; --a_index)
+	//{
+
+	//	for (size_t b_index = (GIRD_SIZE - 1) / 2; b_index < GIRD_SIZE - 1; ++b_index)
+	//	{
+	//		vec3* ptIJ = &res[b_index + 1][a_index - 1].pos;
+	//		vec3* ptIm1J = &res[b_index][a_index - 1].pos;
+	//		vec3* ptIJm1 = &res[b_index + 1][a_index].pos;
+	//		vec3* ptPrevIJ = &res[b_index][a_index].pos;
+
+
+	//		ptIJ->x = ptIJm1->x;
+	//		ptIJ->y = -ptIJm1->y;
+	//		ptIJ->z = ptIm1J->z;
+
+	//		if (!getPt(W, invW, ptIJ, ptIm1J, ptIJm1))
+	//		{
+	//			++errCtr;
+	//		}
+	//	}
+	//}
+	////4
+	//for (size_t a_index = (GIRD_SIZE - 1) / 2; a_index < GIRD_SIZE - 1; ++a_index)
+	//{
+
+	//	for (size_t b_index = (GIRD_SIZE - 1) / 2; b_index < GIRD_SIZE - 1; ++b_index)
+	//	{
+	//		vec3* ptIJ = &res[b_index + 1][a_index + 1].pos;
+	//		vec3* ptIm1J = &res[b_index][a_index + 1].pos;
+	//		vec3* ptIJm1 = &res[b_index + 1][a_index].pos;
+	//		vec3* ptPrevIJ = &res[b_index][a_index].pos;
+
+
+	//		ptIJ->x = ptIJm1->x;
+	//		ptIJ->y = -ptIJm1->y;
+	//		ptIJ->z = ptIm1J->z;
+
+	//		if (!getPt(W, invW, ptIJ, ptIm1J, ptIJm1))
+	//		{
+	//			++errCtr;
+	//		}
+	//	}
+	//}
 	//ppfile.close();
 	std::cout << "Errors count: " << errCtr << "\n";
 	system("pause");
