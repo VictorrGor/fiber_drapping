@@ -14,3 +14,6 @@ constexpr float B = DirectX::XM_PI * R / GIRD_SIZE;
 
 //Retuns woven's gird
 vertex** makeGird();
+
+//Return angle between lines on surface with nodes (ij, pq) (ij,sh)
+float getAngle(vertex** gird, size_t i, size_t j, size_t p, size_t q, size_t s, size_t h);

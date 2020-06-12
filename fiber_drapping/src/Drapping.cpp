@@ -620,3 +620,33 @@ vertex** makeGird()
 	return res;
 }
 
+//Конвертирует из декартовых в параметрические. Возвращает угол фи. 
+float getFiAngle(vertex** gird, size_t i, size_t j)
+{
+	return atan(gird[i][j].pos.z / gird[i][j].pos.x);
+}
+
+//Конвертирует из декартовых в параметрические. Возвращает угол тета.
+float getTetaAngle(vertex** gird, size_t i, size_t j)
+{
+
+	return atan(sqrt(pow(gird[i][j].pos.x, 2) + pow(gird[i][j].pos.z,2)) / gird[i][j].pos.y);
+}
+
+float getAngle(vertex** gird, size_t i, size_t j, size_t p, size_t q, size_t s, size_t h)
+{
+	struct { float fi; float teta;} p0, p1, p2;
+	XMFLOAT3 v1, v2;//Направление p0p1 и p0p2
+	v1.x = gird[p][q].pos.x - gird[i][j].pos.x;
+	v1.y = gird[p][q].pos.y - gird[i][j].pos.y;
+	v1.z = gird[p][q].pos.z - gird[i][j].pos.z;
+
+
+	v2.x = gird[s][h].pos.x - gird[i][j].pos.x;
+	v2.y = gird[s][h].pos.y - gird[i][j].pos.y;
+	v2.z = gird[s][h].pos.z - gird[i][j].pos.z;
+	
+	XMVECTOR angle = XMVector3AngleBetweenVectors(XMLoadFloat3(&v1), XMLoadFloat3(&v2));
+	return angle.m128_f32[0] * 57.2958;
+}
+

@@ -502,6 +502,7 @@ HRESULT RenderSys::InitDevice(HWND* hWnd)
 
 void RenderSys::drawDrappingPoints(vertex** points)
 {
+	//Переформирование из двумерной сетки в одномерный массив
 	vertex* dummyArray = new vertex[GIRD_SIZE * GIRD_SIZE];//Массив-копия для визуализации соединения линиями
 
 	for (size_t i = 0; i < GIRD_SIZE; ++i)
@@ -512,13 +513,12 @@ void RenderSys::drawDrappingPoints(vertex** points)
 		}
 
 	}
-
+	//Вывод всей сетки на экран в виде точек
 	Object* obj = new Object(this, pVxSh, pPxSh, GIRD_SIZE*GIRD_SIZE, dummyArray, D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
 	objects.push_back(obj);
 	
-	size_t startIndex = (GIRD_SIZE * GIRD_SIZE - 1) / 2;
 
-
+	//Формирование данных для отрисовки волокон межде узлами
 	size_t arraySize = (pow((GIRD_SIZE - 1) / 2, 2) * 2 + (GIRD_SIZE - 1)) * 2;
 	size_t* indexAr = new size_t[arraySize];
 	memset(indexAr, 0, sizeof(size_t) * arraySize);
@@ -532,6 +532,7 @@ void RenderSys::drawDrappingPoints(vertex** points)
 	{
 		for (int b_index = (GIRD_SIZE - 1) / 2; b_index >= 0; --b_index)
 		{
+
 			if (b_index - 1 >= 0)
 			{
 				lineDummy[actualIndex] = points[b_index][a_index];
@@ -551,6 +552,70 @@ void RenderSys::drawDrappingPoints(vertex** points)
 	obj = new Object(this, pVxSh, pPxSh, actualIndex, lineDummy, D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
 	objects.push_back(obj);
 
+	//Анализ углов и визуализация результатов
+
+
+
+	vertex* triangleDummy = new vertex[(GIRD_SIZE - 1) * (GIRD_SIZE - 1) * 3];
+	actualIndex = 0;
+	size_t i, j, p, q, s, h;
+
+	
+	float angle, blue, red, green;
+	
+	float coeff = 0.7;
+	for (int a_index = (GIRD_SIZE - 1) / 2; a_index >= 1; --a_index)
+	{
+		for (int b_index = (GIRD_SIZE - 1) / 2; b_index >= 1; --b_index)
+		{
+			i = b_index;
+			j = a_index;
+			p = i - 1;
+			q = j;
+			s = i;
+			h = j - 1;
+			angle = getAngle(points, i, j, p, q, s, h);
+
+			if (angle < 90)
+				red = 1 - angle * coeff / 90;
+			else
+				red = 0;
+			if (angle > 90)
+			{
+				green = 1 - (angle - 90) * coeff / 90;
+				blue = (angle - 90) * coeff / 90;
+			}
+			else
+			{
+				green = angle * coeff / 90;
+				blue = 0;
+			}
+
+
+			triangleDummy[actualIndex] = points[b_index][a_index];
+			actualIndex++;
+			triangleDummy[actualIndex] = points[b_index][a_index - 1];
+			actualIndex++;
+			triangleDummy[actualIndex] = points[b_index - 1][a_index];
+			actualIndex++;
+
+			triangleDummy[actualIndex] = points[b_index - 1][a_index - 1];
+			actualIndex++;
+			triangleDummy[actualIndex] = points[b_index - 1][a_index];
+			actualIndex++;
+			triangleDummy[actualIndex] = points[b_index][a_index - 1];
+			actualIndex++;
+
+			for (size_t ctr = 1; ctr <= 6; ctr++)
+			{
+				triangleDummy[actualIndex - ctr].Color = vec4(red, green, blue, 1.0);
+			}
+
+
+		}
+	}
+	obj = new Object(this, pVxSh, pPxSh, actualIndex, triangleDummy, D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	objects.push_back(obj);
 }
 
 HRESULT RenderSys::InitObjects()
