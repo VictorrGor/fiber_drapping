@@ -36,8 +36,8 @@ void Log(const vertex* _arr, size_t _size)
 
 Object::Object(RenderSys * _rs, ID3D11VertexShader * _pVxSh, ID3D11PixelShader * _pPxSh, 
 	size_t _vertexCount, vertex * vecArr, D3D_PRIMITIVE_TOPOLOGY _toplology,
-				ID3D11Buffer * _pVxBuf, ID3D11Buffer * _pIndexBuf, size_t _indexCount) : pVertexBuf(_pVxBuf), vecCount(_vertexCount),
-				pVxSh(_pVxSh), pPxSh(_pPxSh), toplology(_toplology), pIndexBuf(_pIndexBuf), indexCount(_indexCount), rs(_rs)
+				ID3D11Buffer * _pVxBuf) : pVertexBuf(_pVxBuf), vecCount(_vertexCount),
+				pVxSh(_pVxSh), pPxSh(_pPxSh), toplology(_toplology), pIndexBuf(nullptr), indexCount(0), rs(_rs)
 {
 	if (!_pVxBuf)
 	{
@@ -79,6 +79,65 @@ Object::Object(RenderSys * _rs, ID3D11VertexShader * _pVxSh, ID3D11PixelShader *
 	}
 }
 
+Object::Object(RenderSys* _rs, ID3D11VertexShader* _pVxSh, ID3D11PixelShader* _pPxSh, size_t _vertexCount, vertex* vecArr, D3D_PRIMITIVE_TOPOLOGY _toplology,
+	size_t _indexCount, size_t* indexArray, ID3D11Buffer* _pVxBuf, ID3D11Buffer* _pIndexBuf) : pVertexBuf(_pVxBuf), vecCount(_vertexCount),
+	pVxSh(_pVxSh), pPxSh(_pPxSh), toplology(_toplology), pIndexBuf(nullptr), indexCount(_indexCount), rs(_rs)
+{
+	if (!_pVxBuf)
+	{
+
+		D3D11_BUFFER_DESC bufferDesc;
+		bufferDesc.Usage = D3D11_USAGE_DEFAULT;
+		bufferDesc.ByteWidth = sizeof(vertex) * _vertexCount;
+		bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+		bufferDesc.CPUAccessFlags = 0;
+		bufferDesc.MiscFlags = 0;
+
+		D3D11_SUBRESOURCE_DATA InitData;
+		ZeroMemory(&InitData, sizeof(InitData));
+		InitData.pSysMem = vecArr;
+		_rs->g_pd3dDevice->CreateBuffer(&bufferDesc, &InitData, &pVertexBuf);
+
+
+		D3D11_BUFFER_DESC bd;
+		ZeroMemory(&bd, sizeof(bd));
+		bd.Usage = D3D11_USAGE_DEFAULT;
+		bd.ByteWidth = sizeof(PixelShaderCB);
+		bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+		bd.CPUAccessFlags = 0;
+
+		HRESULT hRes = rs->g_pd3dDevice->CreateBuffer(&bd, NULL, &pPS_CB);
+
+		if (FAILED(hRes))
+		{
+#ifdef DEBUG_CONSOLE
+			std::cout << "[Error] Cann't create Constant Buffer for Object!" << std::endl;
+#endif
+			pPS_CB = nullptr;
+		}
+		else
+		{
+			pCB = new PixelShaderCB();
+			setMaterial(false);
+		}
+	}
+	if (!_pIndexBuf && _indexCount)
+	{
+		D3D11_BUFFER_DESC bd;
+		ZeroMemory(&bd, sizeof(bd));
+		bd.Usage = D3D11_USAGE_DEFAULT;
+		bd.ByteWidth = sizeof(size_t) * indexCount;
+		bd.BindFlags = D3D11_BIND_INDEX_BUFFER;
+		bd.CPUAccessFlags = 0;
+		bd.MiscFlags = 0;
+
+		D3D11_SUBRESOURCE_DATA InitData;
+		ZeroMemory(&InitData, sizeof(InitData));
+		InitData.pSysMem = indexArray;
+		_rs->g_pd3dDevice->CreateBuffer(&bd, &InitData, &pIndexBuf);
+	}
+}
+
 Object::~Object()
 {
 	if (pVertexBuf)
@@ -113,8 +172,9 @@ void Object::setMaterial(bool isUsed, XMFLOAT4 Ambient, XMFLOAT4 Diffuse, XMFLOA
 	ps_pO.Ambient = vec4(0.2, 0.2, 0.2, 1);
 	ps_pO.Diffuse = vec4(0.3, 0.5, 0.3, 1);
 	ps_pO.Specular = vec4(0.2, 0.2, 0.2, 1);
-	ps_pO.Reflect = vec4(0.2, 0.2, 0.2, 1);*/
-	/*	ps_pO.Ambient = vec4(1, 0., 0., 1);
+	ps_pO.Reflect = vec4(0.2, 0.2, 0.2, 1);
+
+	ps_pO.Ambient = vec4(1, 0., 0., 1);
 	ps_pO.Diffuse = vec4(0., 1, 0., 1);
 	ps_pO.Specular = vec4(0., 0, 1, 1);
 	ps_pO.Reflect = vec4(1, 0., 0., 1);*/
@@ -136,18 +196,32 @@ void RenderSys::Render()
 	UINT stride = sizeof(vertex);
 	UINT offset = 0;
 
-	float speed = 0;
-	float R = 1.2;
-	float h = 1.3;
+	static float speed = 0;
+
+	float R = 1. * mouse->wheel_pos * 0.1;
+	static float h = 1.3;
 
 	static float t = 0.0f;
 	{
+		//Для поворота по времени
+		/* 
 		static DWORD dwTimeStart = 0;
 		DWORD dwTimeCur = GetTickCount();
 		if (dwTimeStart == 0) dwTimeStart = dwTimeCur;
 		t = (dwTimeCur - dwTimeStart) / 1000.0f;
-
 		speed = t / 2;
+		*/
+
+		static float xPos = 0;
+		static float yPos = 0;
+		
+		//Производим перерасчёт смешения камеры, только если нажата кнопка
+		xPos = (mouse->mousePos.x - mouse->savedMPos.x) * 0.01;
+		yPos = (mouse->mousePos.y - mouse->savedMPos.y) * 0.01;
+		speed += xPos;
+		h += yPos;
+		mouse->savedMPos.x = mouse->mousePos.x;
+		mouse->savedMPos.y = mouse->mousePos.y;
 
 		DirectX::XMVECTOR Eye = DirectX::XMVectorSet(R * cos(speed), h, R * sin(speed), 0.0f);
 		DirectX::XMVECTOR At = DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
@@ -159,7 +233,7 @@ void RenderSys::Render()
 	//
 	// Clear the back buffer
 	//
-	float ClearColor[4] = { 0.0f, 0.125f, 0.3f, 1.0f }; // red,green,blue,alpha
+	float ClearColor[4] = { 1.0f, 1.f, 1.f, 1.0f }; // red,green,blue,alpha
 	g_pImmediateContext->ClearRenderTargetView(g_pRenderTargetView, ClearColor);
 
 	vertexCB cb0;
@@ -210,6 +284,7 @@ void RenderSys::CleanupDevice()
 	if (g_pImmediateContext) g_pImmediateContext->Release();
 	if (g_pd3dDevice) g_pd3dDevice->Release();
 	if (pPS_CB_per_obj) pPS_CB_per_obj->Release();
+	if (mouse) delete mouse;
 }
 
 HRESULT RenderSys::InitShaders()
@@ -329,6 +404,7 @@ HRESULT RenderSys::InitConstantBuffers(UINT width, UINT height)
 
 HRESULT RenderSys::InitDevice(HWND* hWnd)
 {
+	mouse = new Mouse();
 
 	HRESULT hRes = S_OK;
 
@@ -424,17 +500,282 @@ HRESULT RenderSys::InitDevice(HWND* hWnd)
 	return hRes;
 }
 
-void RenderSys::drawDrappingPoints(vec3** points)
+void RenderSys::drawDrappingPoints(vertex** points)
 {
-	Object(this, g_pVertexBuffer, g_pP)
+	Object* obj;
+	size_t actualIndex = 0;
+	//Переформирование из двумерной сетки в одномерный массив
+	vertex* dummyArray = new vertex[GIRD_SIZE * GIRD_SIZE];//Массив-копия для визуализации соединения линиями
+
+	for (size_t i = 0; i < GIRD_SIZE; ++i)
+	{
+		for (size_t q = 0; q < GIRD_SIZE; q++)
+		{
+			dummyArray[q + i * GIRD_SIZE] = points[q][i];
+		}
+
+	}
+	//Вывод всей сетки на экран в виде точек
+	obj = new Object(this, pVxSh, pPxSh, GIRD_SIZE * GIRD_SIZE, dummyArray, D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+	objects.push_back(obj);
+	
+
+	
+	//Анализ углов и визуализация результатов
+
+
+
+	vertex* triangleDummy = new vertex[(GIRD_SIZE - 1) * (GIRD_SIZE - 1) * 3];
+	actualIndex = 0;
+	size_t i, j, p, q, s, h;
+
+	
+	float angle, blue, red, green;
+	
+	float coeff = 0.7;
+	for (int a_index = (GIRD_SIZE - 1) / 2; a_index >= 1; --a_index)
+	{
+		for (int b_index = (GIRD_SIZE - 1) / 2; b_index >= 1; --b_index)
+		{
+			i = b_index;
+			j = a_index;
+			p = i - 1;
+			q = j;
+			s = i;
+			h = j - 1;
+			angle = getAngle(points, i, j, p, q, s, h);
+
+			if (angle < 90)
+				red = 1 - angle * coeff / 90;
+			else
+				red = 0;
+			if (angle > 90)
+			{
+				green = 1 - (angle - 90) * coeff / 90;
+				blue = (angle - 90) * coeff / 90;
+			}
+			else
+			{
+				green = 1 - red;
+				blue = 0;
+			}
+
+
+			triangleDummy[actualIndex] = points[b_index][a_index];
+			actualIndex++;
+			triangleDummy[actualIndex] = points[b_index][a_index - 1];
+			actualIndex++;
+			triangleDummy[actualIndex] = points[b_index - 1][a_index];
+			actualIndex++;
+
+			triangleDummy[actualIndex] = points[b_index - 1][a_index - 1];
+			actualIndex++;
+			triangleDummy[actualIndex] = points[b_index - 1][a_index];
+			actualIndex++;
+			triangleDummy[actualIndex] = points[b_index][a_index - 1];
+			actualIndex++;
+
+			for (size_t ctr = 1; ctr <= 6; ctr++)
+			{
+				triangleDummy[actualIndex - ctr].Color = vec4(red, green, blue, 1.0);
+			}
+
+
+		}
+	}
+	obj = new Object(this, pVxSh, pPxSh, actualIndex, triangleDummy, D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	objects.push_back(obj);
+
+	//Формирование данных для отрисовки волокон межде узлами
+	size_t arraySize = (pow((GIRD_SIZE - 1) / 2, 2) * 2 + (GIRD_SIZE - 1)) * 2;
+//	size_t* indexAr = new size_t[arraySize];
+	//memset(indexAr, 0, sizeof(size_t) * arraySize);
+	
+	// 1-четверть
+	actualIndex = 0;
+	vertex* lineDummy = new vertex[arraySize];//pow((GIRD_SIZE - 1) / 2 + 1, 2)];
+
+
+	for (int a_index = (GIRD_SIZE - 1) / 2; a_index >= 0; --a_index)
+	{
+		for (int b_index = (GIRD_SIZE - 1) / 2; b_index >= 0; --b_index)
+		{
+
+			if (b_index - 1 >= 0)
+			{
+				lineDummy[actualIndex] = points[b_index][a_index];
+				actualIndex++;
+				lineDummy[actualIndex] = points[b_index - 1][a_index];
+				actualIndex++;
+			}
+			if (a_index - 1 >= 0)
+			{
+				lineDummy[actualIndex] = points[b_index][a_index];
+				actualIndex++;
+				lineDummy[actualIndex] = points[b_index][a_index - 1];
+				actualIndex++;
+			}
+		}
+	}
+	obj = new Object(this, pVxSh, pPxSh, actualIndex, lineDummy, D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
+	objects.push_back(obj);
+
+	//2-четверть
+
+	triangleDummy = new vertex[(GIRD_SIZE - 1) * (GIRD_SIZE - 1) * 3];
+	actualIndex = 0;
+	for (int a_index = (GIRD_SIZE - 1) / 2; a_index < GIRD_SIZE - 1; ++a_index)
+	{
+		for (int b_index = (GIRD_SIZE - 1) / 2; b_index >= 1; --b_index)
+		{
+			i = b_index;
+			j = a_index;
+			p = i - 1;
+			q = j;
+			s = i;
+			h = j + 1;
+			angle = getAngle(points, i, j, p, q, s, h);
+
+			if (angle < 90)
+				red = 1 - angle * coeff / 90;
+			else
+				red = 0;
+			if (angle > 90)
+			{
+				green = 1 - (angle - 90) * coeff / 90;
+				blue = (angle - 90) * coeff / 90;
+			}
+			else
+			{
+				green = 1 - red;
+				blue = 0;
+			}
+
+
+			triangleDummy[actualIndex] = points[s][h];
+			actualIndex++;
+			triangleDummy[actualIndex] = points[i][j];
+			actualIndex++;
+			triangleDummy[actualIndex] = points[p][q];
+			actualIndex++;
+
+			triangleDummy[actualIndex] = points[p][q];
+			actualIndex++;
+			triangleDummy[actualIndex] = points[i - 1][j + 1];
+			actualIndex++;
+			triangleDummy[actualIndex] = points[s][h];
+			actualIndex++;
+
+			for (size_t ctr = 1; ctr <= 6; ctr++)
+			{
+				triangleDummy[actualIndex - ctr].Color = vec4(red, green, blue, 1.0);
+			}
+
+
+		}
+	}
+	obj = new Object(this, pVxSh, pPxSh, actualIndex, triangleDummy, D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	objects.push_back(obj);
+
+
+	actualIndex = 0;
+	lineDummy = new vertex[arraySize];
+
+
+	for (size_t a_index = (GIRD_SIZE - 1) / 2; a_index < GIRD_SIZE ; ++a_index)
+	{
+
+		for (int b_index = (GIRD_SIZE - 1) / 2; b_index >= 0; --b_index)
+		{
+
+			if (b_index - 1 >= 0)
+			{
+				lineDummy[actualIndex] = points[b_index][a_index];
+				actualIndex++;
+				lineDummy[actualIndex] = points[b_index - 1][a_index];
+				actualIndex++;
+			}
+			if (a_index + 1 < GIRD_SIZE)
+			{
+				lineDummy[actualIndex] = points[b_index][a_index];
+				actualIndex++;
+				lineDummy[actualIndex] = points[b_index][a_index + 1];
+				actualIndex++;
+			}
+		}
+	}
+	obj = new Object(this, pVxSh, pPxSh, actualIndex, lineDummy, D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
+	objects.push_back(obj);
+
+
+
+	//3 - четверть
+	actualIndex = 0;
+	lineDummy = new vertex[arraySize];
+
+
+	for (int a_index = (GIRD_SIZE - 1) / 2; a_index >= 0; --a_index)
+	{
+
+		for (size_t b_index = (GIRD_SIZE - 1) / 2; b_index < GIRD_SIZE ; ++b_index)
+		{
+
+			if (b_index + 1 < GIRD_SIZE)
+			{
+				lineDummy[actualIndex] = points[b_index][a_index];
+				actualIndex++;
+				lineDummy[actualIndex] = points[b_index + 1][a_index];
+				actualIndex++;
+			}
+			if (a_index - 1 >= 0)
+			{
+				lineDummy[actualIndex] = points[b_index][a_index];
+				actualIndex++;
+				lineDummy[actualIndex] = points[b_index][a_index - 1];
+				actualIndex++;
+			}
+		}
+	}
+	obj = new Object(this, pVxSh, pPxSh, actualIndex, lineDummy, D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
+	objects.push_back(obj);
+
+	// 4 - четверть
+	actualIndex = 0;
+	lineDummy = new vertex[arraySize];
+
+
+	for (size_t a_index = (GIRD_SIZE - 1) / 2; a_index < GIRD_SIZE; ++a_index)
+	{
+
+		for (size_t b_index = (GIRD_SIZE - 1) / 2; b_index < GIRD_SIZE; ++b_index)
+		{
+
+			if (b_index + 1 < GIRD_SIZE)
+			{
+				lineDummy[actualIndex] = points[b_index][a_index];
+				actualIndex++;
+				lineDummy[actualIndex] = points[b_index + 1][a_index];
+				actualIndex++;
+			}
+			if (a_index + 1 < GIRD_SIZE)
+			{
+				lineDummy[actualIndex] = points[b_index][a_index];
+				actualIndex++;
+				lineDummy[actualIndex] = points[b_index][a_index + 1];
+				actualIndex++;
+			}
+		}
+	}
+	obj = new Object(this, pVxSh, pPxSh, actualIndex, lineDummy, D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
+	objects.push_back(obj);
 }
 
 HRESULT RenderSys::InitObjects()
 {
 	HRESULT hRes = S_OK;
-	coonsLines_new();
+	//coonsLines_new();
+	testObject();
 	drawDrappingPoints(makeGird());
-	//testObject();
 	mp.transferToRender(this);
 	return hRes;
 }
@@ -454,7 +795,7 @@ void RenderSys::coonsLines_new()
 	double teta = DirectX::XM_PIDIV2 / (M_ctr - 1);
 	double delTeta = teta / subSplineCtM;
 	double fi = DirectX::XM_2PI / (N_ctr - 1);
-	double R = 1;
+	double R = 0.98;
 
 	//vertex* sphere = new vertex[N_ctr * subSplineCtN * M_ctr * subSplineCtM];
 
@@ -789,4 +1130,42 @@ HRESULT RenderSys::drawTriangle(vertex* _pt)
 	mp.addNew(_pt, 3);
 	return hRes;
 
+}
+
+Mouse* RenderSys::getMouse()
+{
+	return mouse;
+}
+
+
+Mouse::Mouse()
+{
+	isLeftKeyPressed = false;
+	isRightKeyPressed = false;
+	wheel_pos = 1;
+}
+
+void Mouse::updWheelPos(int newPos)
+{
+	wheel_pos = newPos;
+}
+
+void Mouse::updLK(bool isPressed)
+{
+	isLeftKeyPressed = isPressed;
+	savedMPos = mousePos;
+}
+
+void Mouse::updRK(bool isPressed)
+{
+	isRightKeyPressed = isPressed;
+}
+
+void Mouse::updMousePos(POINT mPos)
+{
+	if (!isLeftKeyPressed)
+	{
+		savedMPos = mPos;
+	}
+	mousePos = mPos;
 }

@@ -37,7 +37,6 @@ void Log(const vertex* _arr, size_t _size);
 
 //Left-handed^ (xOz surface) and Y-up
 
-
 class Object
 {
 	ID3D11Buffer*			pVertexBuf;
@@ -57,10 +56,32 @@ class Object
 public:
 	friend RenderSys;
 	Object(RenderSys* _rs, ID3D11VertexShader* _pVxSh, ID3D11PixelShader* _pPxSh, size_t _vertexCount, vertex* vecArr, D3D_PRIMITIVE_TOPOLOGY _toplology,
-		ID3D11Buffer* _pVxBuf = nullptr, ID3D11Buffer* _pIndexBuf = nullptr, size_t _indexCount = 0);
+		ID3D11Buffer* _pVxBuf = nullptr);
+	Object(RenderSys* _rs, ID3D11VertexShader* _pVxSh, ID3D11PixelShader* _pPxSh, size_t _vertexCount, vertex* vecArr, D3D_PRIMITIVE_TOPOLOGY _toplology,
+		size_t _indexCount, size_t* indexArray, ID3D11Buffer* _pVxBuf = nullptr, ID3D11Buffer* _pIndexBuf = nullptr);
 	~Object();
 
 	void setMaterial(bool isUsed, XMFLOAT4 Ambient = XMFLOAT4(), XMFLOAT4 Diffuse = XMFLOAT4(), XMFLOAT4 Specular = XMFLOAT4(), XMFLOAT4 Reflect = XMFLOAT4());
+};
+
+
+
+class Mouse
+{
+	bool isLeftKeyPressed;
+	bool isRightKeyPressed;
+	int wheel_pos;
+
+	POINT mousePos;
+	POINT savedMPos;
+public:
+	friend RenderSys;
+
+	Mouse();
+	void updWheelPos(int newPos);
+	void updLK(bool isPressed);
+	void updRK(bool isPressed);
+	void updMousePos(POINT mPos);
 };
 
 class RenderSys
@@ -178,6 +199,7 @@ class RenderSys
 	};
 	MemoryPool mp;
 
+	Mouse* mouse;
 public:
 	friend Object;
 
@@ -195,36 +217,100 @@ public:
 	
 	void testObject()
 	{
-		vertex* vx = new vertex[9];
-		vertex vvx;
-		vvx.Color = vec4(0, 1.0, 0, 1.0);
-		vvx.pos = vec3(0.5, 0, -0.5);
-		vx[0] = vvx;
-		vvx.pos = vec3(0, 0.5, 0);
-		vx[1] = vvx;
-		vvx.pos = vec3(0.5, 0, 0.5);
-		vx[2] = vvx;
+		//vertex* vx = new vertex[9];
+		//vertex vvx;
+		//vvx.Color = vec4(0, 1.0, 0, 1.0);
+		//vvx.pos = vec3(0.5, 0, -0.5);
+		//vx[0] = vvx;
+		//vvx.pos = vec3(0, 0.5, 0);
+		//vx[1] = vvx;
+		//vvx.pos = vec3(0.5, 0, 0.5);
+		//vx[2] = vvx;
 
-		//vvx.Color = vec4(1, 0.0, 0, 1.0);
-		vvx.pos = vec3(0.5, 0, 0.5);
-		vx[3] = vvx;
-		vvx.pos = vec3(0, 0.5, 0);
-		vx[4] = vvx;
-		vvx.pos = vec3(0, 0, 0);
-		vx[5] = vvx;
+		////vvx.Color = vec4(1, 0.0, 0, 1.0);
+		//vvx.pos = vec3(0.5, 0, 0.5);
+		//vx[3] = vvx;
+		//vvx.pos = vec3(0, 0.5, 0);
+		//vx[4] = vvx;
+		//vvx.pos = vec3(0, 0, 0);
+		//vx[5] = vvx;
 
-		//vvx.Color = vec4(0, 0, 1, 1.0);
-		vvx.pos = vec3(0, 0, 0);
-		vx[6] = vvx;
-		vvx.pos = vec3(0, 0.5, 0);
-		vx[7] = vvx;
-		vvx.pos = vec3(0.5, 0, -0.5);
-		vx[8] = vvx;
+		////vvx.Color = vec4(0, 0, 1, 1.0);
+		//vvx.pos = vec3(0, 0, 0);
+		//vx[6] = vvx;
+		//vvx.pos = vec3(0, 0.5, 0);
+		//vx[7] = vvx;
+		//vvx.pos = vec3(0.5, 0, -0.5);
+		//vx[8] = vvx;
 
-		mp.addNew(vx, 9);
+		//mp.addNew(vx, 9);
+
+		vertex* sphere = new vertex[10000];
+		size_t ptCt = 100;
+		float teta = 0;
+		float fi = 0;
+		float dTeta = DirectX::XM_PIDIV2 / (ptCt - 1);
+		float dFi = DirectX::XM_2PI / (ptCt - 1) ;
+
+		for (size_t i = 0; i < ptCt; i++)
+		{
+			teta = 0;
+			for (size_t j = 0; j < ptCt; j++)
+			{
+				sphere[j + i * ptCt].pos.x = 1 * sin(teta) * cos(fi);
+				sphere[j + i * ptCt].pos.y = 1 * cos(teta);
+				sphere[j + i * ptCt].pos.z = 1 * sin(teta) * sin(fi);
+				sphere[j + i * ptCt].Color = vec4(0.2, 0.2, 0.2, 1);
+				teta += dTeta;
+			}
+			fi += dFi;
+		}
+		
+		size_t arS = (ptCt - 1) * 2 * 3 * ptCt;
+		//size_t* indices = new size_t[arS];
+		vertex* vs = new vertex[arS];
+		//memset(indices, 0, arS);
+		size_t actualIndex = 0;
+
+		//size_t i = 0;
+		vec3 pos;
+		for (size_t i = 0; i < ptCt - 1; i++)
+		{
+			for (size_t j = 0; j < ptCt - 1; j++)
+			{
+				vs[actualIndex] = sphere[i * ptCt + j];
+				vs[actualIndex + 1] = sphere[(i + 1) * ptCt + j];
+				vs[actualIndex + 2] = sphere[i * ptCt + j + 1];
+				actualIndex += 3;
+			}
+		}
+		for (size_t i = 0; i < ptCt - 1; i++)
+		{
+			for (size_t j = 0; j < ptCt - 1; j++)
+			{
+				vs[actualIndex + 1] = sphere[i * ptCt + j + 1];
+				vs[actualIndex + 2] = sphere[(i + 1) * ptCt + j];
+				vs[actualIndex ] = sphere[(i+1) * ptCt + j + 1];
+				actualIndex += 3;
+			}
+		}
+
+		//for (size_t j = 0; j < ptCt - 1; j++)
+		//{
+		//	vs[actualIndex] = (ptCt - 1) * ptCt + j;
+		//	vs[actualIndex + 1] = (ptCt - 1) * ptCt + j;
+		//	vs[actualIndex + 2] = (ptCt - 1) * ptCt + j + 1;
+		//	actualIndex += 3;
+		//}
+
+
+		Object* obj = new Object(this, pVxSh, pPxSh, actualIndex, vs, D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);// , actualIndex, indices);
+		obj->setMaterial(true, vec4(1.2, 0.2, 0.2, 1), vec4(0.3, 0.5, 0.3, 1),
+			vec4(0.2, 0.2, 0.2, 1), vec4(0.2, 0.2, 0.2, 1));
+		objects.push_back(obj);
 	}
 
-	void drawDrappingPoints(vec3** points);
+	void drawDrappingPoints(vertex** points);
 
 	HRESULT InitObjects();
 	
@@ -234,5 +320,5 @@ public:
 
 	HRESULT drawTriangle(vertex* _pt);
 
-
+	Mouse* getMouse();
 };
