@@ -502,8 +502,8 @@ HRESULT RenderSys::InitDevice(HWND* hWnd)
 
 void RenderSys::drawDrappingPoints(vertex** points)
 {
-	//Переформирование из двумерной сетки в одномерный массив
-	vertex* dummyArray = new vertex[GIRD_SIZE * GIRD_SIZE];//Массив-копия для визуализации соединения линиями
+	//Convert from 2-dim array to 1-dim array, for rendering
+	vertex* dummyArray = new vertex[GIRD_SIZE * GIRD_SIZE];
 
 	for (size_t i = 0; i < GIRD_SIZE; ++i)
 	{
@@ -513,12 +513,12 @@ void RenderSys::drawDrappingPoints(vertex** points)
 		}
 
 	}
-	//Вывод всей сетки на экран в виде точек
+	//Draw gird as points
 	Object* obj = new Object(this, pVxSh, pPxSh, GIRD_SIZE*GIRD_SIZE, dummyArray, D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
 	objects.push_back(obj);
 	
 
-	//Формирование данных для отрисовки волокон межде узлами
+	//Prepare data for fibers drawing
 	size_t arraySize = (pow((GIRD_SIZE - 1) / 2, 2) * 2 + (GIRD_SIZE - 1)) * 2;
 	size_t* indexAr = new size_t[arraySize];
 	memset(indexAr, 0, sizeof(size_t) * arraySize);
@@ -552,9 +552,7 @@ void RenderSys::drawDrappingPoints(vertex** points)
 	obj = new Object(this, pVxSh, pPxSh, actualIndex, lineDummy, D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
 	objects.push_back(obj);
 
-	//Анализ углов и визуализация результатов
-
-
+	//Angle analysis and visualization
 
 	vertex* triangleDummy = new vertex[(GIRD_SIZE - 1) * (GIRD_SIZE - 1) * 3];
 	actualIndex = 0;
@@ -564,6 +562,7 @@ void RenderSys::drawDrappingPoints(vertex** points)
 	float angle, blue, red, green;
 	
 	float coeff = 0.7;
+	//1 octant
 	for (int a_index = (GIRD_SIZE - 1) / 2; a_index >= 1; --a_index)
 	{
 		for (int b_index = (GIRD_SIZE - 1) / 2; b_index >= 1; --b_index)
@@ -604,6 +603,174 @@ void RenderSys::drawDrappingPoints(vertex** points)
 			triangleDummy[actualIndex] = points[b_index - 1][a_index];
 			actualIndex++;
 			triangleDummy[actualIndex] = points[b_index][a_index - 1];
+			actualIndex++;
+
+			for (size_t ctr = 1; ctr <= 6; ctr++)
+			{
+				triangleDummy[actualIndex - ctr].Color = vec4(red, green, blue, 1.0);
+			}
+
+
+		}
+	}
+	obj = new Object(this, pVxSh, pPxSh, actualIndex, triangleDummy, D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	objects.push_back(obj); 
+	
+	//2 octant
+	actualIndex = 0;
+	triangleDummy = new vertex[(GIRD_SIZE - 1) * (GIRD_SIZE - 1) * 3];
+	for (int a_index = (GIRD_SIZE - 1) / 2; a_index < (GIRD_SIZE - 1); ++a_index)
+	{
+		for (int b_index = (GIRD_SIZE - 1) / 2; b_index >= 1; --b_index)
+		{
+			i = b_index;
+			j = a_index;
+			p = i - 1;
+			q = j;
+			s = i;
+			h = j + 1;
+			angle = getAngle(points, i, j, p, q, s, h);
+
+			if (angle < 90)
+				red = 1 - angle * coeff / 90;
+			else
+				red = 0;
+			if (angle > 90)
+			{
+				green = 1 - (angle - 90) * coeff / 90;
+				blue = (angle - 90) * coeff / 90;
+			}
+			else
+			{
+				green = angle * coeff / 90;
+				blue = 0;
+			}
+
+
+			triangleDummy[actualIndex] = points[b_index][a_index];
+			actualIndex++;
+			triangleDummy[actualIndex] = points[b_index - 1][a_index];
+			actualIndex++;
+			triangleDummy[actualIndex] = points[b_index][a_index + 1];
+			actualIndex++;
+
+			triangleDummy[actualIndex] = points[b_index - 1][a_index + 1];
+			actualIndex++;
+			triangleDummy[actualIndex] = points[b_index][a_index + 1];
+			actualIndex++;
+			triangleDummy[actualIndex] = points[b_index - 1][a_index];
+			actualIndex++;
+
+			for (size_t ctr = 1; ctr <= 6; ctr++)
+			{
+				triangleDummy[actualIndex - ctr].Color = vec4(red, green, blue, 1.0);
+			}
+
+
+		}
+	}
+	obj = new Object(this, pVxSh, pPxSh, actualIndex, triangleDummy, D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	objects.push_back(obj);
+
+	//3 octant
+	actualIndex = 0;
+	triangleDummy = new vertex[(GIRD_SIZE - 1) * (GIRD_SIZE - 1) * 3];
+	for (int a_index = (GIRD_SIZE - 1) / 2; a_index >= 1; --a_index)
+	{
+		for (int b_index = (GIRD_SIZE - 1) / 2; b_index < (GIRD_SIZE - 1); ++b_index)
+		{
+			i = b_index;
+			j = a_index;
+			p = i + 1;
+			q = j;
+			s = i;
+			h = j - 1;
+			angle = getAngle(points, i, j, p, q, s, h);
+
+			if (angle < 90)
+				red = 1 - angle * coeff / 90;
+			else
+				red = 0;
+			if (angle > 90)
+			{
+				green = 1 - (angle - 90) * coeff / 90;
+				blue = (angle - 90) * coeff / 90;
+			}
+			else
+			{
+				green = angle * coeff / 90;
+				blue = 0;
+			}
+
+
+			triangleDummy[actualIndex] = points[b_index][a_index];
+			actualIndex++;
+			triangleDummy[actualIndex] = points[b_index + 1][a_index];
+			actualIndex++;
+			triangleDummy[actualIndex] = points[b_index][a_index - 1];
+			actualIndex++;
+
+			triangleDummy[actualIndex] = points[b_index + 1][a_index - 1];
+			actualIndex++;
+			triangleDummy[actualIndex] = points[b_index][a_index - 1];
+			actualIndex++;
+			triangleDummy[actualIndex] = points[b_index + 1][a_index];
+			actualIndex++;
+
+			for (size_t ctr = 1; ctr <= 6; ctr++)
+			{
+				triangleDummy[actualIndex - ctr].Color = vec4(red, green, blue, 1.0);
+			}
+
+
+		}
+	}
+	obj = new Object(this, pVxSh, pPxSh, actualIndex, triangleDummy, D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	objects.push_back(obj);
+
+	//4 octant
+	actualIndex = 0;
+	triangleDummy = new vertex[(GIRD_SIZE - 1) * (GIRD_SIZE - 1) * 3];
+	for (int a_index = (GIRD_SIZE - 1) / 2; a_index < (GIRD_SIZE - 1); ++a_index)
+	{
+		for (int b_index = (GIRD_SIZE - 1) / 2; b_index < (GIRD_SIZE - 1); ++b_index)
+		{
+			i = b_index;
+			j = a_index;
+			p = i + 1;
+			q = j;
+			s = i;
+			h = j + 1;
+			angle = getAngle(points, i, j, p, q, s, h);
+
+			if (angle < 90)
+				red = 1 - angle * coeff / 90;
+			else
+				red = 0;
+			if (angle > 90)
+			{
+				green = 1 - (angle - 90) * coeff / 90;
+				blue = (angle - 90) * coeff / 90;
+			}
+			else
+			{
+				green = angle * coeff / 90;
+				blue = 0;
+			}
+
+
+			triangleDummy[actualIndex] = points[b_index][a_index];
+			actualIndex++;
+			triangleDummy[actualIndex] = points[b_index][a_index + 1];
+			actualIndex++;
+			triangleDummy[actualIndex] = points[b_index + 1][a_index];
+			actualIndex++;
+
+			triangleDummy[actualIndex] = points[b_index + 1][a_index + 1];
+			actualIndex++;
+			triangleDummy[actualIndex] = points[b_index + 1][a_index];
+			actualIndex++;
+			triangleDummy[actualIndex] = points[b_index][a_index + 1];
 			actualIndex++;
 
 			for (size_t ctr = 1; ctr <= 6; ctr++)
