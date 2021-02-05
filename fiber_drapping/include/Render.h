@@ -246,6 +246,41 @@ public:
 		mp.addNew(vx, 9);
 	}
 
+	void test_surface()
+	{
+		size_t n = 10;
+		size_t m = 10;
+		vertex** Q = new vertex * [n];
+		for (size_t i = 0; i < n; ++i) Q[i] = new vertex[m];
+
+		double step_fi = XM_PI * 2 / (n - 1);
+		double step_teta = XM_PIDIV2 / (m - 1);
+		double R = 1;
+
+		for (size_t i = 0; i < n; ++i)
+			for (size_t j = 0; j < m; ++j)
+				Q[i][j].pos = vec3(R * cos(i * step_fi) * cos(step_teta * j), R * sin(step_teta * j) , R * cos(j * step_teta) * sin(step_fi * i));
+
+
+		surfInfo sfI = GenInterpBSplineSurface(n, m, Q, 3, 3);
+
+
+		size_t size = 100;
+		vertex* res = new vertex[size * size];
+		
+
+		for(size_t i = 0; i < size; ++i)
+			for (size_t j = 0; j < size; ++j)
+			{
+				res[i * size + j] = SurfacePoint(&sfI, 1. / (size - 1) * i, 1. / (size - 1) * j);
+				res[i * size + j].Color = vec4(0, 0, 0, 1);
+			}
+		
+		Object* obj = new Object(this, pVxSh, pPxSh, size * size, res, D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+		//Object* obj = new Object(this, pVxSh, pPxSh, n*m, convert2DimArrayTo1(Q, n, n), D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+		objects.push_back(obj);
+	}
+
 	void drawDrappingPoints(vertex** points);
 
 	HRESULT InitObjects();
@@ -257,4 +292,6 @@ public:
 	HRESULT drawTriangle(vertex* _pt);
 
 	Mouse* getMouse();
+	vertex** drawHyperboloid();
+	vertex** drawRocket();
 };

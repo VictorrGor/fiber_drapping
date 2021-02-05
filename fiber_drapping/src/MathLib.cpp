@@ -144,6 +144,7 @@ vertex derivateBbyS(splineInfo * c1, splineInfo * c2, double s, double t)
 }
 
 
+
 //n -segmentation count
 //double getArea(double _leftTeta, double _rightTeta, double _leftFi, double _rightFi, size_t n)
 //{

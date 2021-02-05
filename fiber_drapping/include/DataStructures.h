@@ -82,6 +82,22 @@ struct splineInfo
 	double* forwardU;
 };
 
+struct surfInfo
+{	
+	vertex** controlPoints;
+	size_t n, m; //array size
+	size_t p, q; //surface spline degree
+	//knot vectors with length: pt_ct + degree
+	double* Uk;//n+p
+	double* Vl;//m+q
+
+	surfInfo();
+	~surfInfo();
+	surfInfo(const surfInfo& obj);
+	surfInfo& operator=(const surfInfo& obj);
+	surfInfo(vertex** cp, size_t _n, size_t _m, size_t _p, size_t _q, double* _Uk, double* _Vl);
+};
+
 struct vertexCB
 {
 	DirectX::XMMATRIX mWVP;
@@ -105,3 +121,6 @@ struct PixelShaderCB
 	bool dummy[16];// size of buffer must by devided by 16
 
 };
+
+
+vertex* convert2DimArrayTo1(vertex** mx, size_t n, size_t m);

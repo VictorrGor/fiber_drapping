@@ -184,3 +184,125 @@ vertex operator/(const vertex& _vx, const double& _multiplier)
 	res.pos.z /= _multiplier;
 	return res;
 }
+
+vertex* convert2DimArrayTo1(vertex** mx, size_t n, size_t m)
+{
+	vertex* res = new vertex[n * m];
+	for (size_t i = 0; i < n; ++i)
+		for (size_t j = 0; j < m; ++j)
+			res[i * n + j] = mx[i][j];
+
+	return res;
+}
+
+surfInfo::surfInfo()
+{
+	this->controlPoints = nullptr;
+	this->Uk = nullptr;
+	this->Vl = nullptr;
+}
+
+surfInfo::~surfInfo()
+{
+	if (controlPoints)
+	{
+		for (size_t i = 0; i < n; ++i)
+		{
+			if (controlPoints[i]) delete[] controlPoints[i];
+		}
+		delete[] controlPoints;
+	}
+	if (Uk) delete Uk;
+	if (Vl) delete Vl;
+}
+
+surfInfo::surfInfo(const surfInfo& obj)
+{
+	this->controlPoints = nullptr;
+	this->Uk = nullptr;
+	this->Vl = nullptr;
+
+	this->n = obj.n;
+	this->m = obj.m;
+	this->p = obj.p;
+	this->q = obj.q;
+	if (obj.controlPoints)
+	{
+		this->controlPoints = new vertex*[this->n];
+		for (size_t i = 0; i < this->n; ++i)
+		{
+			if (obj.controlPoints[i])
+			{
+				this->controlPoints[i] = new vertex[this->m];
+				for (size_t j = 0; j < this->m; ++j) this->controlPoints[i][j] = obj.controlPoints[i][j];
+			}
+			else throw "surfaceInfo: incorrect obj!";
+		}
+		if (obj.Uk)
+		{
+			this->Uk = new double[this->n + this->p];
+			for (size_t i = 0; i < n + p; ++i) this->Uk[i] = obj.Uk[i];
+		}
+		else throw "surfaceInfo: incorrect obj!";
+		if (obj.Vl)
+		{
+			this->Vl = new double[this->m + this->q];
+			for (size_t i = 0; i < this->m + this->q; ++i) this->Vl[i] = obj.Vl[i];
+		}
+		else throw "surfaceInfo: incorrect obj!";
+	}
+}
+
+surfInfo& surfInfo::operator=(const surfInfo& obj)
+{
+	if (this->controlPoints)
+	{
+		for (size_t i = 0; i < this->n; ++i)
+		{
+			delete[] this->controlPoints[i];
+		}
+		delete[] this->controlPoints;
+	}
+	if (this->Uk) delete[] this->Uk;
+	if (this->Vl) delete[] this->Vl;
+
+
+	this->controlPoints = nullptr;
+	this->Uk = nullptr;
+	this->Vl = nullptr;
+	this->n = obj.n;
+	this->m = obj.m;
+	this->p = obj.p;
+	this->q = obj.q;
+	if (obj.controlPoints)
+	{
+		this->controlPoints = new vertex * [this->n];
+		for (size_t i = 0; i < this->n; ++i)
+		{
+			if (obj.controlPoints[i])
+			{
+				this->controlPoints[i] = new vertex[this->m];
+				for (size_t j = 0; j < this->m; ++j) this->controlPoints[i][j] = obj.controlPoints[i][j];
+			}
+			else throw "surfaceInfo: incorrect obj!";
+		}
+		if (obj.Uk)
+		{
+			this->Uk = new double[this->n + this->p];
+			for (size_t i = 0; i < n + p; ++i) this->Uk[i] = obj.Uk[i];
+		}
+		else throw "surfaceInfo: incorrect obj!";
+		if (obj.Vl)
+		{
+			this->Vl = new double[this->m + this->q];
+			for (size_t i = 0; i < this->m + this->q; ++i) this->Vl[i] = obj.Vl[i];
+		}
+		else throw "surfaceInfo: incorrect obj!";
+	}
+	return *this;
+}
+
+surfInfo::surfInfo(vertex** cp, size_t _n, size_t _m, size_t _p, size_t _q, double* _Uk, double* _Vl) : controlPoints(cp),
+	n(_n), m(_m), p(_p), q(_q), Uk(_Uk), Vl(_Vl)
+{
+}

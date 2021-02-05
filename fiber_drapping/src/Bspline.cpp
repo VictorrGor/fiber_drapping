@@ -96,9 +96,6 @@ splineInfo addInterpolationSpline(vertex* vtx, size_t pointCount)
 	HRESULT hRes = S_OK;
 
 	double step = 0.05;
-#ifdef LOG_ON
-	Log(vtx, pointCount);
-#endif
 	vertex* derivatePoints = getDerivatePoints(pointCount, vtx);
 
 	size_t knotVectorSize = (pointCount - 2) + 2 * (splineDegree + 1);
@@ -106,25 +103,6 @@ splineInfo addInterpolationSpline(vertex* vtx, size_t pointCount)
 	double* backwardU = new double[knotVectorSize];//Индексы для построения полученного спалйна
 	getInterpolationKnotVector(pointCount, forwardU, backwardU, knotVectorSize, vtx);
 
-	//////////////Output//////////////////////////
-#ifdef LOG_ON
-	Log("Forward vector is: ");
-	for (int i = 0; i < pointCount; ++i)
-	{
-		sprintf(buf, "%lf ", forwardU[i]);
-		Log(buf);
-	}
-	Log("\n");
-
-	Log("Knot vector is: ");
-	for (int i = 0; i < knotVectorSize; ++i)
-	{
-		sprintf(buf, "%lf ", backwardU[i]);
-		Log(buf);
-	}
-	Log("\n");
-#endif 
-	//////////////Output//////////////////////////
 
 	size_t n = pointCount - 1;
 	vertex* R = new vertex[pointCount];
@@ -158,9 +136,6 @@ splineInfo addInterpolationSpline(vertex* vtx, size_t pointCount)
 	P[n] = (vtx[n - 1] - pRes[2] * P[n + 1] - pRes[0] * P[n - 1]) / den;
 	for (size_t i = n - 1; i >= 2; --i) P[i] = P[i] - dd[i + 1] * P[i + 1];
 
-#ifdef LOG_ON
-	Log(P, pointCount + 2);
-#endif
 
 	delete[] R;
 	delete[] dd;
@@ -254,12 +229,6 @@ double* makeKnotVector(size_t _ptCount, size_t _q)
 		knots[i] = (int)_ptCount - (int)_q + 2;
 	}
 
-#ifdef LOG_ON
-	for (size_t i = 0; i < size; ++i)
-	{
-		file << knots[i] << "\n";
-	}
-#endif
 
 	return knots;
 }
@@ -284,12 +253,6 @@ vertex CurvePoint(splineInfo _spI, size_t _p, double _u)
 
 vertex * makeBSpline(size_t _vxCount, size_t _p, splineInfo _spI)
 {
-#ifdef LOG_ON
-	std::ofstream pFile;
-	pFile.open("out.txt");
-	if (!pFile.good()) MessageBox(NULL, L"Can't open log file!", L"Error!", 0);
-	pFile << "x\ty\tz\n";
-#endif
 	vertex* result = new vertex[_vxCount];
 
 	double* _knots = _spI.knotVector;
@@ -301,9 +264,6 @@ vertex * makeBSpline(size_t _vxCount, size_t _p, splineInfo _spI)
 	{
 		result[j] = CurvePoint(_spI, _p, dt);
 	}
-#ifdef LOG_ON
-	pFile.close();
-#endif
 	return result;
 }
 
@@ -437,6 +397,374 @@ vertex* CurveDerivateAlg1(splineInfo spi, size_t p, double u, size_t d)
 	delete[] nders;
 
 	return CK;
+}
+
+void SurfMeshParams(size_t n, size_t m, vertex** Q, double** uk, double** vl)
+{
+	size_t num = m;
+	(*uk) = new double[n];
+	(*uk)[0] = 0;
+	(*uk)[n - 1] = 1;
+	double d = 0;
+
+	for (size_t k = 1; k < n - 1; ++k) (*uk)[k] = 0;
+	double total = 0;
+	double* cds = new double[n];
+	vec3 diff;
+	float fDiff;
+	for (size_t l = 0; l < m; ++l)
+	{
+		total = 0;
+		for (size_t k = 1; k < n; ++k)
+		{
+			diff = Q[k][l].pos - Q[k - 1][l].pos;
+			cds[k] = sqrtf(DirectX::XMVectorGetX(DirectX::XMVector3Dot(DirectX::XMLoadFloat3(&diff), DirectX::XMLoadFloat3(&diff))));
+			total = total + cds[k];
+		}
+		if (total == 0) num = num - 1;
+		else
+		{
+			d = 0;
+			for (size_t k = 1; k < n - 1; ++k)
+			{
+				d = d + cds[k];
+				(*uk)[k] = (*uk)[k] + d / total;
+			}
+		}
+	}
+	if (num == 0)
+		throw "Error!";
+	for (int k = 1; k < (n - 1); k++)
+	{
+		(*uk)[k] = (*uk)[k] / num;
+	}
+	delete[] cds;
+	//vl
+	num = n;
+	(*vl) = new double[m];
+	(*vl)[0] = 0;
+	(*vl)[m - 1] = 1;
+
+	for (size_t k = 1; k < m - 1; ++k) (*vl)[k] = 0;
+	total = 0;
+	cds = new double[m];
+
+	for (size_t l = 0; l < n; ++l)
+	{
+		total = 0;
+		for (size_t k = 1; k < m; ++k)
+		{
+			diff = Q[k][l].pos - Q[k - 1][l].pos;
+			cds[k] = sqrtf(DirectX::XMVectorGetX(DirectX::XMVector3Dot(DirectX::XMLoadFloat3(&diff), DirectX::XMLoadFloat3(&diff))));
+			total = total + cds[k];
+		}
+		if (total == 0) num = num - 1;
+		else
+		{
+			d = 0;
+			for (size_t k = 1; k < m - 1; ++k)
+			{
+				d = d + cds[k];
+				(*vl)[k] = (*vl)[k] + d / total;
+			}
+		}
+	}
+	if (num == 0)
+		throw "Error!";
+	for (size_t k = 1; k < m - 1; k++)	(*vl)[k] = (*vl)[k] / num;
+
+#ifdef LOG_ON
+	std::cout << "SurfMeshParams, uk is:\n";
+	for (size_t i = 0; i < n; ++i) std::cout << (*uk)[i] << " ";
+
+	std::cout << "\n\tvl is:\n";
+	for (size_t i = 0; i < m; ++i) std::cout << (*vl)[i] << " ";
+#endif
+	delete[] cds;
+}
+
+void LUDecomposition(double** A, size_t q, double*** L, double*** U)
+{
+
+#ifdef LOG_ON
+	std::cout.width(5);
+	std::cout << "A is: \n";
+	for (size_t i = 0; i < q; ++i)
+	{
+		for (size_t j = 0; j < q; ++j)
+			std::cout << std::setprecision(4) << A[i][j] << "\t";
+		std::cout << "\n";
+	}
+#endif
+
+	for (size_t i = 0; i < q; ++i)
+	{
+		(*U)[i] = (double*)calloc(q, sizeof(double));
+		(*L)[i] = (double*)calloc(q, sizeof(double));
+		(*U)[i][i] = 1;
+	}
+
+	for (int i = 0; i < q; ++i)
+	{
+		for (int j = 0; j < q; ++j)
+		{
+			double sum = 0;
+			if (i < j)
+			{
+				for (int k = 0; k < i; ++k)
+					sum += (*L)[i][k] * (*U)[k][j];
+
+				if (!(*L)[i][i]) throw "LUDecomposition: division by zero!";
+				(*U)[i][j] = (A[i][j] - sum) / (*L)[i][i];
+			}
+			else
+			{
+				for (int k = 0; k < j; ++k)
+					sum += (*L)[i][k] * (*U)[k][j];
+
+				(*L)[i][j] = (A[i][j] - sum);
+			}
+		}
+	}
+}
+
+double* LUForwardBackward(double** L, double** U, double* b, size_t q)
+{
+	double* y = (double*)calloc(q, sizeof(double));
+
+#ifdef LOG_ON
+	std::cout.width(5);
+	std::cout << "U is: \n";
+	for (size_t i = 0; i < q; ++i)
+	{
+		for (size_t j = 0; j < q; ++j)
+			std::cout << std::setprecision(4) << U[i][j] << "\t";
+		std::cout << "\n";
+	}
+	std::cout << "L is: \n";
+	for (size_t i = 0; i < q; ++i)
+	{
+		for (size_t j = 0; j < q; ++j)
+			std::cout << std::setprecision(4) << L[i][j] << "\t";
+		std::cout << "\n";
+	}
+#endif
+
+	//L Forward
+	for (size_t i = 0; i < q; ++i)
+	{
+		for (size_t j = 0; j < i; ++j)
+		{
+			b[i] -= L[i][j] * y[j];
+		}
+		if (!L[i][i]) throw "LUForwardBackward: L[i][i] is null!";
+		b[i] /= L[i][i];
+		y[i] = b[i];
+	}
+	//U Backward
+	double* res = (double*)calloc(q, sizeof(double));
+	for (int i = q - 1; i >= 0; --i)
+	{
+		for (size_t j = q - 1; j > i; --j)
+		{
+			y[i] -= U[i][j] * res[j];
+		}
+		if (!U[i][i]) throw "LUForwardBackward: U[i][i] is null!";
+		y[i] /= U[i][i];
+		res[i] = y[i];
+	}
+
+	return res;
+}
+
+float* getVxCoordByPosNum(vertex& vx, size_t num)
+{
+	switch (num)
+	{
+	case 0:
+		return &vx.pos.x;
+	case 1:
+		return &vx.pos.y;
+	case 2:
+		return &vx.pos.z;
+	default:
+		throw "Uncorrect index!";
+	}
+}
+
+vertex* interpolateCurve(vertex* vtx, size_t vtx_ct, size_t p, double* uk, double* U, size_t r)
+{
+	//size_t m = vtx_ct + p;
+	if (!uk)
+	{
+		throw "not implemented!";
+	}
+
+	double** A = new double* [vtx_ct];
+	for (size_t i = 0; i < vtx_ct; ++i) A[i] = (double*)calloc(vtx_ct, sizeof(double));
+
+	size_t span = 0;
+	for (size_t i = 0; i < vtx_ct; ++i)
+	{
+		span = FindSpan(vtx_ct, p, uk[i], U, vtx_ct + p); //knot size from computeKnotVector function
+		BasisFuncs(span, uk[i], p, U, (A[i] + span - p));
+	}
+	double** Lmx = new double*[vtx_ct];
+	double** Umx = new double*[vtx_ct];
+
+	LUDecomposition(A, vtx_ct, &Lmx, &Umx);
+	double* rhs = new double[vtx_ct];
+	vertex* P = new vertex[vtx_ct];
+	for (size_t i = 0; i < r; ++i)
+	{
+		for (size_t j = 0; j < vtx_ct; ++j)	rhs[j] = *getVxCoordByPosNum(vtx[j], i);
+		double* sol = LUForwardBackward(Lmx, Umx, rhs, vtx_ct);
+		for (size_t j = 0; j < vtx_ct; ++j) *getVxCoordByPosNum(P[j], i) = sol[j];
+	}
+	return P;
+}
+
+double* computeKnotVector(double* _u, size_t p, size_t n)
+{
+	size_t m = n + p + 1;
+	double* u = (double*)calloc(m, sizeof(double));
+
+	for (size_t i = 0; i <= p; ++i) u[i] = 0;
+	for (size_t j = 1; j < n - p; ++j)
+	{
+
+		for (size_t i = j; i <= j + p - 1; ++i)
+		{
+			u[p + j] += _u[i];
+		}
+		u[p + j] /= p;
+	}
+	for (size_t i = m - p - 1; i < m; ++i) u[i] = 1;
+
+#ifdef LOG_ON
+	std::cout << "\nComputed vector:\n";
+	for (size_t i = 0; i < m; ++i) std::cout << u[i] << " ";
+	std::cout << "\n";
+#endif
+	return u;
+}
+
+vertex* testSpline()
+{
+	size_t ct = 5;
+	vertex* vtx = new vertex[ct];
+	vtx[0].pos = vec3(0, 0, 0);
+	vtx[1].pos = vec3(3, 4, 0);
+	vtx[2].pos = vec3(-1, 4, 0);
+	vtx[3].pos = vec3(-4, 0, 0);
+	vtx[4].pos = vec3(-4, -3, 0);
+	
+	double* uk = new double[ct];
+	double* U = (double*) calloc(ct + 3 + 1, sizeof(double));
+	uk[0] = 0;
+	uk[1] = 5. / 17;
+	uk[2] = 9. / 17;
+	uk[3] = 14. / 17;
+	uk[4] = 1.;
+
+	U[4] = 28. / 51;
+	for (size_t i = 5; i < ct + 3 + 1; ++i) U[i] = 1;
+
+	vertex* P = interpolateCurve(vtx, ct, 3, uk, U);
+
+	splineInfo spi;
+	spi.controlPoints = P;
+	spi.cpCount = ct;
+	spi.forwardU = uk;
+	spi.knotLength = ct + 3 + 1;
+	spi.knotVector = U;
+
+	vertex* res = new vertex[1000];
+	for (size_t i = 0; i < 1000; ++i)
+	{
+		res[i] = CurvePoint(spi, 3, i * 1. / 999);
+	}
+
+	return res;
+}
+
+vertex** transposeMatrix(vertex** mx, size_t n, size_t m)
+{
+	vertex** res = new vertex * [m];
+	for (size_t i = 0; i < m; ++i)
+	{
+		res[i] = new vertex[n];
+		for (size_t j = 0; j < n; ++j)
+		{
+			res[i][j] = mx[j][i];
+		}
+	}
+	return res;
+}
+
+void saveAsTransponsed(vertex** mx, size_t n, size_t m, size_t idx, vertex* vec)
+{
+	for (size_t i = 0; i < m; ++i)
+	{
+		mx[i][idx] = vec[i];
+	}
+}
+
+surfInfo GenInterpBSplineSurface(size_t n, size_t m, vertex** Q, size_t p, size_t q)
+{
+	double* _uk, * _vl;
+	SurfMeshParams(n, m, Q, &_uk, &_vl); //size of knots: n and m
+	double* Uk = computeKnotVector(_uk, p, n);
+	double* Vl = computeKnotVector(_vl, q, m);
+
+	//Interpolate by t coordinate
+	vertex** R = new vertex * [m];
+	for (size_t i = 0; i < m; ++i) R[i] = new vertex[n];
+
+	for (size_t l = 0; l < m; ++l)
+	{
+		saveAsTransponsed(R, n, m, l, interpolateCurve(Q[l], n, p, _uk, Uk));
+	}
+
+	//Interpolate by tau coordinate
+	vertex** P = new vertex * [n];
+	for (size_t i = 0; i < n; ++i) P[i] = new vertex[m];
+
+	for (size_t l = 0; l < n; ++l)
+	{
+		saveAsTransponsed(P, m, n, l, interpolateCurve(R[l], m, q, _vl, Vl));
+	}
+
+	delete[] _uk;
+	delete[] _vl;
+	delete[] R;
+	surfInfo res(P, n, m, p, q, Uk, Vl);
+	return res;
+}
+
+vertex SurfacePoint(surfInfo* sfI, double u, double v)
+{
+	size_t uspan = FindSpan(sfI->n, sfI->p, u, sfI->Uk, sfI->n + sfI->p);
+	double* Nu, * Nv;
+	Nu = new double[sfI->p + 1];
+	BasisFuncs(uspan, u, sfI->p, sfI->Uk, Nu);
+	Nv = new double[sfI->q + 1];
+	size_t vspan = FindSpan(sfI->m, sfI->q, v, sfI->Vl, sfI->m + sfI->q);
+	BasisFuncs(vspan, v, sfI->q, sfI->Vl, Nv);
+	size_t uind = uspan - sfI->p;
+	
+	vertex S = vertex();
+	for (size_t l = 0; l <= sfI->q; ++l)
+	{
+		vertex temp = vertex();
+		size_t vind = vspan - sfI->q + l;
+		for (size_t k = 0; k <= sfI->p; ++k)
+		{
+			temp = temp + Nu[k] * sfI->controlPoints[uind + k][vind];
+		}
+		S += Nv[l] * temp;
+	}
+	return S;
 }
 
 double getSplineLen(double _left, double _right, vertex *(*ffunc)(splineInfo, size_t, double, size_t), splineInfo _spi, size_t _p, size_t n)

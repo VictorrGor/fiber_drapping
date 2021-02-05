@@ -5,7 +5,7 @@
 
 #define CLOTH_WIDTH 1.
 #define CLOTH_HEIGHT 1.
-#define GIRD_SIZE 91
+#define GIRD_SIZE 901
 //Убрать из макропараметров
 constexpr float R = 1;
 constexpr float A = DirectX::XM_PI * R / GIRD_SIZE;

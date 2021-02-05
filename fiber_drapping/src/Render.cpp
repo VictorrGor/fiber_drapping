@@ -34,6 +34,7 @@ void Log(const vertex* _arr, size_t _size)
 	file << "\n";
 }
 
+
 Object::Object(RenderSys * _rs, ID3D11VertexShader * _pVxSh, ID3D11PixelShader * _pPxSh, 
 	size_t _vertexCount, vertex * vecArr, D3D_PRIMITIVE_TOPOLOGY _toplology,
 				ID3D11Buffer * _pVxBuf) : pVertexBuf(_pVxBuf), vecCount(_vertexCount),
@@ -789,8 +790,20 @@ HRESULT RenderSys::InitObjects()
 {
 	HRESULT hRes = S_OK;
 	//coonsLines_new();
-	drawDrappingPoints(makeGird());
+	//drawRocket();
+	//drawDrappingPoints(drawHyperboloid());
+	//drawDrappingPoints(makeGird());
 	//testObject();
+	/*vertex* vtx = testSpline();
+	for (size_t i = 0; i < 1000; ++i)
+	{
+		std::cout << vtx[i].pos.x << " " << vtx[i].pos.y << " " << vtx[i].pos.z << "\n";
+		vtx[i].Color = vec4(1, 0, 0, 1);
+	}
+	Object* obj = new Object(this, pVxSh, pPxSh, 1000, vtx, D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+	objects.push_back(obj);*/
+	test_surface();
+
 	mp.transferToRender(this);
 	return hRes;
 }
@@ -1150,6 +1163,104 @@ HRESULT RenderSys::drawTriangle(vertex* _pt)
 Mouse* RenderSys::getMouse()
 {
 	return mouse;
+}
+
+vertex** RenderSys::drawHyperboloid()
+{
+	float hyp_width = 1.;
+	float hyp_len = 1.;
+	float A = 1;
+	float B = 1;
+
+	float step_x = hyp_width / (GIRD_SIZE - 1);
+	float step_y = hyp_len / (GIRD_SIZE - 1);
+
+	vertex** res = new vertex*[GIRD_SIZE];
+
+	float x_coord = -hyp_len / 2.;
+	float z_coord = 0;
+
+	for (size_t i = 0; i < GIRD_SIZE; ++i)
+	{
+		float y_coord = -hyp_width / 2.;
+		res[i] = new vertex[GIRD_SIZE];
+		for (size_t j = 0; j < GIRD_SIZE; ++j)
+		{
+			res[i][j] = vertex();
+			z_coord = pow(x_coord, 2) * pow(A, 2) - pow(y_coord, 2) / pow(B, 2);
+			res[i][j].pos = vec3(x_coord, z_coord, y_coord);
+			y_coord += step_y;
+		}
+		x_coord += step_x;
+	}
+	//Object* obj = new Object(this, pVxSh, pPxSh, GIRD_SIZE * GIRD_SIZE, res, D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+	//objects.push_back(obj);
+
+	return res;
+}
+
+vertex** RenderSys::drawRocket()
+{
+	const float R_sphere = 0.0315; //meters
+	const float alf_cone = 80.5; //degree
+	const float LA_height = 2.52; //meters
+	const float jamma = atan(R_sphere / (LA_height - R_sphere));
+
+
+	//Ellipsoid constants
+	const float a = 1.;
+	const float b = 1.;
+	const float c = 1.;
+
+	float step_fi = DirectX::XM_2PI / ((GIRD_SIZE - 1)); 
+	//float step_teta = DirectX::XM_PIDIV2 / (GIRD_SIZE - 1);
+	float step_z = LA_height / (GIRD_SIZE - 1);
+	float fi = 0;
+	//float teta = 0;
+
+	float x=0, y = 0, z = 0;
+
+	vertex* res = new vertex [GIRD_SIZE * GIRD_SIZE];
+	 
+	for (size_t i = 0; i < GIRD_SIZE; ++i)
+	{
+		fi = 0;
+		for (size_t j = 0; j < GIRD_SIZE; ++j)
+		{
+			//if (fi < DirectX::XM_PI) //cone
+			//{
+			//	if (z > R_sphere)
+			//	{
+			//		float coneR = z * tan(jamma);
+			//		x = coneR * cos(fi);
+			//		y = coneR * sin(fi);
+			//	}
+			//	else
+			//	{
+			//		double teta = z / (R * cos(fi));
+
+			//		x = R_sphere * sin(teta) * cos(fi);
+			//		//y = R_sphere * sin(fi);
+			//		y = R_sphere * cos(teta) * cos(fi);
+			//	}
+			//}
+			//else//elliptical cone
+			{
+				float coneR = z * tan(jamma) ;//zero division
+				x = a * coneR  * cos(fi);
+				y = b * coneR * sin(fi);
+				//z = c * coneR * cos(jamma) * cos(fi);
+			}
+			res[i * GIRD_SIZE + j] = vertex();
+			res[i* GIRD_SIZE + j].pos = vec3(x, y, z);
+			fi += step_fi;
+		}
+		z += step_z;
+	}
+	Object* obj = new Object(this, pVxSh, pPxSh, GIRD_SIZE * GIRD_SIZE, res, D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+	objects.push_back(obj);
+
+	return nullptr;
 }
 
 
