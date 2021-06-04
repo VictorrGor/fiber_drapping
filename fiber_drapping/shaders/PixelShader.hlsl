@@ -42,7 +42,7 @@ cbuffer cbPerFrame : register(b0)
 {
 	//PointLight gPointLight;
 	light ll;
-	//float3 gEyePosW;
+	float3 gEyePosW;
 	//float4x4 mVWP;
 };
 
@@ -61,10 +61,23 @@ float4 main(VS_INPUT input) : SV_Target
 {
 	if (isMaterial[0])
 	{
+		float3 lightVec = -ll.dir;
+		float3 toEyeW = normalize(gEyePosW - input.WorldPos.xyz);
+		float d = length(lightVec);
+		lightVec /= d;
+
 		input.Normal = normalize(input.Normal);
-		float4 diffuse = Diffuse * ll.ambient;
-		float3 res = diffuse +saturate(dot(ll.dir, input.Normal) * ll.diffuse * Diffuse);
-		return float4(res, Diffuse.a);
+
+		float4 diff = (max(dot(input.Normal, lightVec), 0)) * ll.diffuse;
+		float4 ambient = Ambient * ll.ambient;
+		//float3 toEye = gEyePosW - input.Pos.xyz;
+		float4 spec = float4(0, 0, 0, 0);
+
+		float3 v = reflect(-lightVec, input.Normal);
+		float specFactor = pow(max(dot(v, toEyeW), 0.0f), 32);
+		spec = specFactor * Specular * ll.diffuse;
+		float3 res = diff + ambient;// +spec;
+		return  float4(res, 1.0f);
 	//	float4 plPos = mul(gPointLight.Position, mVWP);
 
 	//	float3 finalColor = float3(0.0f, 0.0f, 0.0f);

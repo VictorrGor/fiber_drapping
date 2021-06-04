@@ -767,6 +767,50 @@ vertex SurfacePoint(surfInfo* sfI, double u, double v)
 	return S;
 }
 
+vertex** SurfaceDerivsAlg1(surfInfo* sfI, double u, double v, size_t d)
+{
+	vertex** SKL = new vertex * [d + 1];
+	for (size_t i = 0; i < d + 1; ++i) SKL[i] = new vertex[d + 1];
+
+	size_t du = min(sfI->p, d);
+	size_t dv = min(sfI->q, d);
+	for (size_t k = sfI->p + 1; k <= d; ++k)
+		for (size_t l = 0; l <= d - k; ++l) SKL[k][l] = vertex();
+
+	for (size_t l = sfI->q + 1; l <= d; ++l)
+		for (size_t k = 0; k <= d - l; ++k) SKL[k][l] = vertex();
+
+	size_t uspan = FindSpan(sfI->n, sfI->p, u, sfI->Uk, sfI->n + sfI->p + 1);
+	size_t vspan = FindSpan(sfI->m, sfI->q, v, sfI->Vl, sfI->m + sfI->q + 1);
+	
+	double** Nu = DersBasisFuns(uspan, u, sfI->p, sfI->n, sfI->Uk);
+	double** Nv = DersBasisFuns(vspan, v, sfI->q, sfI->m, sfI->Vl);
+	
+	vertex* temp = new vertex[sfI->q + 1];
+	
+	for (size_t k = 0; k <= du; ++k)
+	{
+		for (size_t s = 0; s <= sfI->q; ++s)
+		{
+			temp[s] = vertex();
+			for (size_t r = 0; r <= sfI->p; ++r)
+			{
+				temp[s] = temp[s] + Nu[k][r] * sfI->controlPoints[uspan - sfI->p + r][vspan - sfI->q + s];
+			}
+		}
+		size_t dd = min(d - k, dv);
+		for (size_t l = 0; l <= dd; ++l)
+		{
+			SKL[k][l] = vertex();
+			for (size_t s = 0; s <= sfI->q; ++s)
+			{
+				SKL[k][l] = SKL[k][l] + Nv[l][s] * temp[s];
+			}
+		}
+	}
+	return SKL;
+}
+
 double getSplineLen(double _left, double _right, vertex *(*ffunc)(splineInfo, size_t, double, size_t), splineInfo _spi, size_t _p, size_t n)
 {
 	vec3 v1 = integrate(0, 1, *CurveDerivateAlg1, _spi);

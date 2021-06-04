@@ -36,7 +36,7 @@ void Log(const vertex* _arr, size_t _size)
 
 
 Object::Object(RenderSys * _rs, ID3D11VertexShader * _pVxSh, ID3D11PixelShader * _pPxSh, 
-	size_t _vertexCount, vertex * vecArr, D3D_PRIMITIVE_TOPOLOGY _toplology,
+	UINT _vertexCount, vertex * vecArr, D3D_PRIMITIVE_TOPOLOGY _toplology,
 				ID3D11Buffer * _pVxBuf) : pVertexBuf(_pVxBuf), vecCount(_vertexCount),
 				pVxSh(_pVxSh), pPxSh(_pPxSh), toplology(_toplology), pIndexBuf(nullptr), indexCount(0), rs(_rs)
 {
@@ -80,14 +80,16 @@ Object::Object(RenderSys * _rs, ID3D11VertexShader * _pVxSh, ID3D11PixelShader *
 	}
 }
 
-Object::Object(RenderSys* _rs, ID3D11VertexShader* _pVxSh, ID3D11PixelShader* _pPxSh, size_t _vertexCount, vertex* vecArr, D3D_PRIMITIVE_TOPOLOGY _toplology,
-	size_t _indexCount, size_t* indexArray, ID3D11Buffer* _pVxBuf, ID3D11Buffer* _pIndexBuf) : pVertexBuf(_pVxBuf), vecCount(_vertexCount),
+Object::Object(RenderSys* _rs, ID3D11VertexShader* _pVxSh, ID3D11PixelShader* _pPxSh, 
+	UINT _vertexCount, vertex* vecArr, D3D_PRIMITIVE_TOPOLOGY _toplology,
+	UINT _indexCount, UINT* indexArray, ID3D11Buffer* _pVxBuf, ID3D11Buffer* _pIndexBuf) : pVertexBuf(_pVxBuf), vecCount(_vertexCount),
 	pVxSh(_pVxSh), pPxSh(_pPxSh), toplology(_toplology), pIndexBuf(nullptr), indexCount(_indexCount), rs(_rs)
 {
 	if (!_pVxBuf)
 	{
 
 		D3D11_BUFFER_DESC bufferDesc;
+		ZeroMemory(&bufferDesc, sizeof(bufferDesc));
 		bufferDesc.Usage = D3D11_USAGE_DEFAULT;
 		bufferDesc.ByteWidth = sizeof(vertex) * _vertexCount;
 		bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
@@ -97,7 +99,7 @@ Object::Object(RenderSys* _rs, ID3D11VertexShader* _pVxSh, ID3D11PixelShader* _p
 		D3D11_SUBRESOURCE_DATA InitData;
 		ZeroMemory(&InitData, sizeof(InitData));
 		InitData.pSysMem = vecArr;
-		_rs->g_pd3dDevice->CreateBuffer(&bufferDesc, &InitData, &pVertexBuf);
+		HRESULT res = _rs->g_pd3dDevice->CreateBuffer(&bufferDesc, &InitData, &pVertexBuf);
 
 
 		D3D11_BUFFER_DESC bd;
@@ -202,9 +204,15 @@ void RenderSys::Render()
 	float R = 1. * mouse->wheel_pos * 0.1;
 	static float h = 1.3;
 
+	Light light;
+	light.Direction = XMFLOAT3(0.25f, 1, 0.50f);
+	light.Ambient = XMFLOAT4(0.2f, 0.2f, 0.2f, 1.0f);
+	light.Diffuse = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+	PS_perFrame_CB perFrame;
+	perFrame.ll = light;
+
 	static float t = 0.0f;
 	{
-		//Для поворота по времени
 		/* 
 		static DWORD dwTimeStart = 0;
 		DWORD dwTimeCur = GetTickCount();
@@ -216,7 +224,6 @@ void RenderSys::Render()
 		static float xPos = 0;
 		static float yPos = 0;
 		
-		//Производим перерасчёт смешения камеры, только если нажата кнопка
 		xPos = (mouse->mousePos.x - mouse->savedMPos.x) * 0.01;
 		yPos = (mouse->mousePos.y - mouse->savedMPos.y) * 0.01;
 		speed += xPos;
@@ -228,8 +235,11 @@ void RenderSys::Render()
 		DirectX::XMVECTOR At = DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
 		DirectX::XMVECTOR Up = DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
 		g_View = DirectX::XMMatrixLookAtLH(Eye, At, Up);
+		XMStoreFloat3(&perFrame.eyePos, Eye);
 	}
 
+	g_pImmediateContext->UpdateSubresource(g_pPS_CB, 0, NULL, &perFrame, 0, 0);
+	g_pImmediateContext->PSSetConstantBuffers(0, 1, &g_pPS_CB);
 
 	//
 	// Clear the back buffer
@@ -264,7 +274,7 @@ void RenderSys::Render()
 		{
 			g_pImmediateContext->IASetIndexBuffer(pObj->pIndexBuf, DXGI_FORMAT_R32_UINT, offset);
 			g_pImmediateContext->DrawIndexed(pObj->indexCount, 0, 0);
-			g_pImmediateContext->Draw(pObj->vecCount, 0);
+			//g_pImmediateContext->Draw(pObj->vecCount, 0);
 		}
 		else
 		{
@@ -377,6 +387,8 @@ HRESULT RenderSys::InitConstantBuffers(UINT width, UINT height)
 
 	bd1.Usage = D3D11_USAGE_DEFAULT;
 	bd1.ByteWidth = sizeof(PS_perFrame_CB);
+	int a = sizeof(XMFLOAT3);
+	int b = sizeof(Light);
 	bd1.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	bd1.CPUAccessFlags = 0;
 	hRes = g_pd3dDevice->CreateBuffer(&bd1, NULL, &g_pPS_CB);
@@ -388,8 +400,8 @@ HRESULT RenderSys::InitConstantBuffers(UINT width, UINT height)
 	light.Ambient = XMFLOAT4(0.2f, 0.2f, 0.2f, 1.0f);
 	light.Diffuse = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 
-	g_pImmediateContext->UpdateSubresource(g_pPS_CB, 0, NULL, &light, 0, 0);
-	g_pImmediateContext->PSSetConstantBuffers(0, 1, &g_pPS_CB);
+	//g_pImmediateContext->UpdateSubresource(g_pPS_CB, 0, NULL, &light, 0, 0);
+	//g_pImmediateContext->PSSetConstantBuffers(0, 1, &g_pPS_CB);
 	///////Per obj
 	ZeroMemory(&bd1, sizeof(bd1));
 
@@ -789,22 +801,81 @@ void RenderSys::drawDrappingPoints(vertex** points)
 HRESULT RenderSys::InitObjects()
 {
 	HRESULT hRes = S_OK;
-	//coonsLines_new();
-	//drawRocket();
-	//drawDrappingPoints(drawHyperboloid());
-	//drawDrappingPoints(makeGird());
-	//testObject();
-	/*vertex* vtx = testSpline();
-	for (size_t i = 0; i < 1000; ++i)
-	{
-		std::cout << vtx[i].pos.x << " " << vtx[i].pos.y << " " << vtx[i].pos.z << "\n";
-		vtx[i].Color = vec4(1, 0, 0, 1);
-	}
-	Object* obj = new Object(this, pVxSh, pPxSh, 1000, vtx, D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
-	objects.push_back(obj);*/
-	test_surface();
+	//drawSinSurf();
+	UINT surf_size = 3;
+	vertex* surf = new vertex[surf_size * surf_size];
+	float step = 100. / surf_size;
 
-	mp.transferToRender(this);
+	float step_fi = 0.5 * XM_PI / surf_size;
+
+	
+	//Draw surface
+	for (UINT i = 0; i < surf_size; ++i)
+	{
+		for (UINT j = 0; j < surf_size; ++j)
+		{
+			surf[i * surf_size + j].pos = vec3(i * step, sin(i * step_fi) * sin(j * step_fi) * 0.4, j *	step);
+			surf[i * surf_size + j].Color = vec4(1 * i  * step, 1 * j * step, 0, 1); 
+		}
+	}
+
+	Object* obj_surf = new Object(this, pVxSh, pPxSh, surf_size * surf_size, surf, D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+	this->objects.push_back(obj_surf);
+
+	UINT idx_size = (surf_size - 1) * (surf_size - 1) * 6;
+	UINT* indices = new UINT[idx_size];
+	UINT counter = 0;
+
+	//Vertices for normal calculating
+	vertex* v0, *v1, *v2;
+	vec3 normal;
+	//Make indices and calculate normals
+	for (UINT i = 0; i < surf_size - 1; ++i)
+	{
+		for (UINT j = 0; j < surf_size - 1; ++j)
+		{
+			indices[counter] = i * surf_size + j;
+			indices[counter + 1] = i * surf_size + j + 1;
+			indices[counter + 2] = (i+1) * surf_size + j;
+			v0 = surf + i * surf_size + j;
+			v1 = surf + i * surf_size + j + 1;
+			v2 = surf + (i + 1) * surf_size + j;
+			normal = calculateTriangleNormal(*v0, *v1, *v2);
+			v0->normal = v0->normal + normal;
+			v1->normal = v1->normal + normal;
+			v2->normal = v2->normal + normal;
+
+
+			indices[counter + 3] = i * surf_size + j + 1;
+			indices[counter + 4] = (i+1) * surf_size + j + 1;
+			indices[counter + 5] = (i+1) * surf_size + j;
+			v0 = surf + i * surf_size + j + 1;
+			v1 = surf + (i + 1) * surf_size + j + 1;
+			v2 = surf + (i + 1) * surf_size + j;
+			normal = calculateTriangleNormal(*v0, *v1, *v2);
+			v0->normal = v0->normal + normal;
+			v1->normal = v1->normal + normal;
+			v2->normal = v2->normal + normal;
+			counter += 6;
+		}
+	}
+
+	vec3 actual_normal;
+	//Normalize normals
+	for (UINT i = 0; i < surf_size; ++i)
+	{
+		for (UINT j = 0; j < surf_size; ++j)
+		{
+			XMStoreFloat3(&actual_normal, XMVector3Normalize(XMLoadFloat3(&surf[i * surf_size + j].normal)));
+			surf[i * surf_size + j].normal = actual_normal;
+		}
+	}
+
+
+	obj_surf = new Object(this, pVxSh, pPxSh, surf_size * surf_size, surf, D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, idx_size, indices);
+	obj_surf->setMaterial(true, vec4(1, 0, 0, 1), vec4(0, 1, 0, 1), vec4(1, 1, 1, 0.4), vec4(0.3, 0, 0, 1));
+	this->objects.push_back(obj_surf);
+
 	return hRes;
 }
 
@@ -820,10 +891,10 @@ void RenderSys::coonsLines_new()
 	size_t M_ctr = 10;
 
 	//Step
-	double teta = DirectX::XM_PIDIV2 / (M_ctr - 1);
-	double delTeta = teta / subSplineCtM;
-	double fi = DirectX::XM_2PI / (N_ctr - 1);
-	double R = 0.98;
+	float teta = DirectX::XM_PIDIV2 / (M_ctr - 1);
+	float delTeta = teta / subSplineCtM;
+	float fi = DirectX::XM_2PI / (N_ctr - 1);
+	float R = 0.98f;
 
 	//vertex* sphere = new vertex[N_ctr * subSplineCtN * M_ctr * subSplineCtM];
 
@@ -874,7 +945,7 @@ void RenderSys::coonsLines_new()
 
 	teta = DirectX::XM_PIDIV2 / (M_ctr - 1);
 	fi = DirectX::XM_2PI / (N_ctr - 1);
-	double delFi = fi / subSplineCtN;
+	float delFi = fi / subSplineCtN;
 
 	for (size_t tau = 0; tau < M_ctr; ++tau)
 	{
@@ -1206,61 +1277,196 @@ vertex** RenderSys::drawRocket()
 	const float LA_height = 2.52; //meters
 	const float jamma = atan(R_sphere / (LA_height - R_sphere));
 
+	float scale_coef = 10;
 
 	//Ellipsoid constants
 	const float a = 1.;
 	const float b = 1.;
 	const float c = 1.;
 
-	float step_fi = DirectX::XM_2PI / ((GIRD_SIZE - 1)); 
-	//float step_teta = DirectX::XM_PIDIV2 / (GIRD_SIZE - 1);
-	float step_z = LA_height / (GIRD_SIZE - 1);
+	//float step_fi = DirectX::XM_PI / ((GIRD_SIZE - 1)); 
 	float fi = 0;
-	//float teta = 0;
-
+	float teta = 0;
+	//float step_teta = DirectX::XM_PI / 2 / (GIRD_SIZE / 2 - 1);
 	float x=0, y = 0, z = 0;
 
-	vertex* res = new vertex [GIRD_SIZE * GIRD_SIZE];
-	 
-	for (size_t i = 0; i < GIRD_SIZE; ++i)
+	/*
+	vertex** Q = new vertex*[GIRD_SIZE];
+	for (size_t i = 0; i < GIRD_SIZE; ++i) Q[i] = new vertex[GIRD_SIZE];
+
+	//bottom sphere
+	for (size_t i = 0; i < GIRD_SIZE / 2; ++i)
 	{
-		fi = 0;
 		for (size_t j = 0; j < GIRD_SIZE; ++j)
 		{
-			//if (fi < DirectX::XM_PI) //cone
-			//{
-			//	if (z > R_sphere)
-			//	{
-			//		float coneR = z * tan(jamma);
-			//		x = coneR * cos(fi);
-			//		y = coneR * sin(fi);
-			//	}
-			//	else
-			//	{
-			//		double teta = z / (R * cos(fi));
+			x = R_sphere * sin(teta) * cos(fi);
+			z = -R_sphere * cos(teta);
+			y = R_sphere * sin(teta) * sin(fi);
 
-			//		x = R_sphere * sin(teta) * cos(fi);
-			//		//y = R_sphere * sin(fi);
-			//		y = R_sphere * cos(teta) * cos(fi);
-			//	}
-			//}
-			//else//elliptical cone
-			{
-				float coneR = z * tan(jamma) ;//zero division
-				x = a * coneR  * cos(fi);
-				y = b * coneR * sin(fi);
-				//z = c * coneR * cos(jamma) * cos(fi);
-			}
-			res[i * GIRD_SIZE + j] = vertex();
-			res[i* GIRD_SIZE + j].pos = vec3(x, y, z);
+			Q[i][j] = vertex();
+			Q[i][j].pos = vec3(x * scale_coef, y * scale_coef, z * scale_coef);
 			fi += step_fi;
 		}
-		z += step_z;
+		fi = 0;
+		teta += step_teta;
 	}
-	Object* obj = new Object(this, pVxSh, pPxSh, GIRD_SIZE * GIRD_SIZE, res, D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+	//top spherical cone
+	teta = alf_cone / 2;
+
+	teta = 0;
+	fi = 0;
+	for (size_t i = GIRD_SIZE / 2; i < GIRD_SIZE; ++i)
+	{
+		for (size_t j = 0; j < GIRD_SIZE; ++j)
+		{
+			x = R_sphere * sin(teta) * cos(fi);
+			z = R_sphere * cos(teta) * 0.5;
+			y = R_sphere * sin(teta) * sin(fi);
+
+			Q[i][j] = vertex();
+			Q[i][j].pos = vec3(x * scale_coef, y * scale_coef, z * scale_coef);
+			fi += step_fi;
+		}
+		fi = 0;
+		teta += step_teta;
+	}*/
+	UINT n = 10;
+	UINT m = 10;
+	vertex** Q = new vertex * [n];
+	for (UINT i = 0; i < n; ++i) Q[i] = new vertex[m];
+
+	float step_fi = XM_PI * 2 / (n - 1);
+	float step_teta = XM_PIDIV2 / (m - 1);
+	float R = 1.f;
+
+	for (UINT i = 0; i < n / 2; ++i)
+		for (UINT j = 0; j < m; ++j)
+			Q[i][j].pos = vec3(R * cos(i * step_fi) * cos(step_teta * j), R * sin(step_teta * j), R * cos(j * step_teta) * sin(step_fi * i));
+	for (UINT i = n / 2; i < n; ++i)
+		for (UINT j = 0; j < m; ++j)
+			Q[i][j].pos = vec3(R * cos(i * step_fi) * cos(step_teta * j), R * sin(step_teta * j), R * cos(j * step_teta) * sin(step_fi * i) * 0.5f);
+	
+	surfInfo sfI = GenInterpBSplineSurface(n, m, Q, 3, 3);
+	Object* obj = new Object(this, pVxSh, pPxSh, n * m, convert2DimArrayTo1(Q, n, m), D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
 	objects.push_back(obj);
+	drawLineOnBSplineSurface(&sfI, 0, 0, true);
+	drawLineOnBSplineSurface(&sfI, 0.25, 0, true);
+	drawLineOnBSplineSurface(&sfI, 0.5, 0., true);
+	drawLineOnBSplineSurface(&sfI, 0.75, 0., true);
+	drapping_part(&sfI, 0., 0, true, 0.25, 0, true);
+	drapping_part(&sfI, 0.25, 0, true, 0.5, 0, true);
+	drapping_part(&sfI, 0.5, 0, true, 0.75, 0, true);
+	drapping_part(&sfI, 0.75, 0, true, 1, 0, true);
+
+	//drapping_part(&sfI, 0.25, 0, true, 0.5, 0, true);
+	//drawLineOnBSplineSurface(&sfI, 1, 0, true);
 
 	return nullptr;
+}
+
+vertex** RenderSys::drawSinSurf()
+{
+	const float R_sphere = 0.0315f; //meters
+	const float alf_cone = 80.5f; //degree
+	const float LA_height = 2.52f; //meters
+	const float jamma = atan(R_sphere / (LA_height - R_sphere));
+
+	float scale_coef = 10;
+
+	//Ellipsoid constants
+	const float a = 1.;
+	const float b = 1.;
+	const float c = 1.;
+
+	//float step_fi = DirectX::XM_PI / ((GIRD_SIZE - 1)); 
+	float fi = 0;
+	float teta = 0;
+	//float step_teta = DirectX::XM_PI / 2 / (GIRD_SIZE / 2 - 1);
+	float x = 0, y = 0, z = 0;
+
+	/*
+	vertex** Q = new vertex*[GIRD_SIZE];
+	for (size_t i = 0; i < GIRD_SIZE; ++i) Q[i] = new vertex[GIRD_SIZE];
+
+	//bottom sphere
+	for (size_t i = 0; i < GIRD_SIZE / 2; ++i)
+	{
+		for (size_t j = 0; j < GIRD_SIZE; ++j)
+		{
+			x = R_sphere * sin(teta) * cos(fi);
+			z = -R_sphere * cos(teta);
+			y = R_sphere * sin(teta) * sin(fi);
+
+			Q[i][j] = vertex();
+			Q[i][j].pos = vec3(x * scale_coef, y * scale_coef, z * scale_coef);
+			fi += step_fi;
+		}
+		fi = 0;
+		teta += step_teta;
+	}
+	//top spherical cone
+	teta = alf_cone / 2;
+
+	teta = 0;
+	fi = 0;
+	for (size_t i = GIRD_SIZE / 2; i < GIRD_SIZE; ++i)
+	{
+		for (size_t j = 0; j < GIRD_SIZE; ++j)
+		{
+			x = R_sphere * sin(teta) * cos(fi);
+			z = R_sphere * cos(teta) * 0.5;
+			y = R_sphere * sin(teta) * sin(fi);
+
+			Q[i][j] = vertex();
+			Q[i][j].pos = vec3(x * scale_coef, y * scale_coef, z * scale_coef);
+			fi += step_fi;
+		}
+		fi = 0;
+		teta += step_teta;
+	}*/
+	UINT n = 10;
+	UINT m = 10;
+	vertex** Q = new vertex * [n];
+	for (UINT i = 0; i < n; ++i) Q[i] = new vertex[m];
+
+	float step_fi = XM_PI  / (n - 1);
+	float step_teta = XM_PI / (m - 1);
+	float R = 1;
+
+	for (UINT i = 0; i < n; ++i)
+		for (UINT j = 0; j < m; ++j)
+			Q[i][j].pos = vec3(i * step_fi, sin( j)* sin( i), (j * step_teta) );
+
+	surfInfo sfI = GenInterpBSplineSurface(n, m, Q, 3, 3);
+	Object* obj = new Object(this, pVxSh, pPxSh, n * m, convert2DimArrayTo1(Q, n, m), D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+	objects.push_back(obj);
+	//drawLineOnBSplineSurface(&sfI, 0, 0, true);
+	drawLineOnBSplineSurface(&sfI, 0., 0., false);
+	drawLineOnBSplineSurface(&sfI, 0., 0., true);
+	//drawLineOnBSplineSurface(&sfI, 0.75, 0., true);
+	drapping_part(&sfI, 0., 0, true, 0., 0, false);
+	/*drapping_part(&sfI, 0.25, 0, true, 0.5, 0, true);
+	drapping_part(&sfI, 0.5, 0, true, 0.75, 0, true);
+	drapping_part(&sfI, 0.75, 0, true, 1, 0, true);*/
+
+	//drapping_part(&sfI, 0.25, 0, true, 0.5, 0, true);
+	//drawLineOnBSplineSurface(&sfI, 1, 0, true);
+
+	return nullptr;
+}
+
+void RenderSys::drawLineOnBSplineSurface(surfInfo* sfi, double u, double v, bool isU)
+{
+	UINT size = 500;
+	vertex* line = new vertex[size];
+	for (UINT i = 0; i < size; ++i)
+	{
+		if (isU) line[i] = SurfacePoint(sfi, u, i * 1. / (size - 1));
+		else line[i] = SurfacePoint(sfi, i * 1. / (size - 1), v);
+		line[i].Color = vec4(1, 0, 0, 1);
+	}
+	Object* obj = new Object(this, pVxSh, pPxSh, size, line, D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP);
+	objects.push_back(obj);
 }
 
 

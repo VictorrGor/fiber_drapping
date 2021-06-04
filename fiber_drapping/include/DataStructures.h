@@ -108,6 +108,8 @@ struct vertexCB
 struct PS_perFrame_CB
 {
 	Light ll;
+	XMFLOAT3 eyePos;
+	float dummy;
 };
 
 //Per object
@@ -123,4 +125,18 @@ struct PixelShaderCB
 };
 
 
-vertex* convert2DimArrayTo1(vertex** mx, size_t n, size_t m);
+vertex* convert2DimArrayTo1(vertex** mx, UINT n, UINT m);
+
+//Warp B Spline surface point. Does not release memory
+struct bSplinePt
+{
+	vertex* pt;
+	double u;
+	double v;
+
+	bSplinePt();
+	~bSplinePt();
+	bSplinePt(vertex* _pt, double _u, double _v);
+	bSplinePt& operator=(const bSplinePt& obj);
+};
+

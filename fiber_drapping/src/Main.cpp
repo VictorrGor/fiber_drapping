@@ -1,6 +1,5 @@
 #define DEBUG_CONSOLE
 #include "Render.h"
-///@todo прикрутить систему логирования
 
 
 RenderSys rs;
@@ -123,6 +122,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			case VK_ESCAPE:
 			{
 				DestroyWindow(hWnd);
+				break;
+			}
+			case VK_SPACE:
+			{
+				rs.disableMaterials();
 				break;
 			}
 		};

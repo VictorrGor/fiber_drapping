@@ -5,7 +5,7 @@
 #include <DirectXMath.h>
 #include <iomanip>
 
-#define LOG_ON
+//#define LOG_ON
 
 extern size_t splineDegree;
 
@@ -18,6 +18,7 @@ double* makeKnotVector(size_t _ptCount, size_t _q);
 vertex CurvePoint(splineInfo _spI, size_t _p, double _u);
 vertex* makeBSpline(size_t _vxCount, size_t _p, splineInfo _spI);
 vertex* getDerivatePoints(size_t _ptCount, vertex* vtx);
+double** DersBasisFuns(size_t i, double u, int p, int n, double* U);
 vertex* CurveDerivateAlg1(splineInfo spi, size_t p, double u, size_t d);
 
 // (n+1)*(m+1) - data points sizes, Q - points 
@@ -38,7 +39,6 @@ float* getVxCoordByPosNum(vertex& vx, size_t num);
 //r - axises count
 vertex* interpolateCurve(vertex* vtx, size_t vtx_ct, size_t p = 3, double* uk = nullptr, double* U = nullptr, size_t r = 3);
 
-
 //size m = n + p
 double* computeKnotVector(double* _u, size_t p, size_t n);
 
@@ -53,5 +53,8 @@ void saveAsTransponsed(vertex** mx, size_t n, size_t m, size_t idx, vertex* vec)
 surfInfo GenInterpBSplineSurface(size_t n, size_t m, vertex** Q, size_t p, size_t q);
 
 vertex SurfacePoint(surfInfo* sfI, double u, double v);
+
+//d - derivaion degree
+vertex** SurfaceDerivsAlg1(surfInfo* sfI, double u, double v, size_t d);
 
 double getSplineLen(double _left, double _right, vertex*(*ffunc)(splineInfo, size_t, double, size_t), splineInfo _spi, size_t _p = 3, size_t n = 100);

@@ -8,24 +8,16 @@ void getJakobain(float** W, vec3* ptIJ, vec3* ptIm1J, vec3* ptIJm1)
 {
 	W[0][0] = 2 * (ptIJ->x - ptIm1J->x);
 	W[0][1] = 2 * (ptIJ->y - ptIm1J->y);
-	W[0][2] = 2 * (ptIJ->z - ptIm1J->z);
 
 	W[1][0] = 2 * (ptIJ->x - ptIJm1->x);
 	W[1][1] = 2 * (ptIJ->y - ptIJm1->y);
-	W[1][2] = 2 * (ptIJ->z - ptIJm1->z);
-
-	W[2][0] = 2 * ptIJ->x;
-	W[2][1] = 2 * ptIJ->y;
-	W[2][2] = 2 * ptIJ->z;
-
 }
 
 //
-void getF(float* f, vec3* ptIJ, vec3* ptIm1J, vec3* ptIJm1)
+void getF(double* f, vec3* ptIJ, vec3* ptIm1J, vec3* ptIJm1)
 {
 	f[0] = -(pow((ptIJ->x - ptIm1J->x), 2) + pow((ptIJ->y - ptIm1J->y), 2) + pow((ptIJ->z - ptIm1J->z), 2) - pow(A, 2));
 	f[1] = -(pow((ptIJ->x - ptIJm1->x), 2) + pow((ptIJ->y - ptIJm1->y), 2) + pow((ptIJ->z - ptIJm1->z), 2) - pow(B, 2));
-	f[2] = -(pow((ptIJ->x), 2) + pow((ptIJ->y), 2) + pow((ptIJ->z), 2) - pow(R, 2));
 }
 
 
@@ -411,24 +403,21 @@ void scaleMx(float** mx, float num)
 //std::ofstream ppfile;
 
 //Поиск точки на поверхности методом Нюьтона
-bool getPt(float** W, float** invW, vec3* ptIJ, vec3* ptIm1J, vec3* ptIJm1)
+/*bool getPt(float** W, float** invW, vec3* ptIJ, vec3* ptIm1J, vec3* ptIJm1)
 {
 	cool_counter++;
-	//ptIJ->x = ptIm1J->x;
-	//ptIJ->y = ptIJm1->y;
-	//ptIJ->z = (ptIm1J->z + ptIJm1->z) / 2;
 	
 	const size_t maxIterCt = 1000;
 	bool flag = true;
 	size_t i = 0;
-	float* f = new float[3];
-	float* dx = new float[3];
+	size_t dim = 2;
+	float* f = new float[dim];
+	float* dx = new float[dim];
 
 	float epsilon = 0.0001;
-
 	float len = 100000;
-
 	float lenMin = len;
+
 
 	while (flag && (maxIterCt > i))
 	{
@@ -459,15 +448,131 @@ bool getPt(float** W, float** invW, vec3* ptIJ, vec3* ptIm1J, vec3* ptIJm1)
 	delete[] f;
 	delete[] dx;
 	
-	//ppfile << lenMin << "\n";
-	/*if (flag)
+
+	return !flag;
+}
+*/
+
+bool getBSplineDrapPoint(double** W, double** invW, bSplinePt* ptIJ, bSplinePt* ptIm1J, bSplinePt* ptIJm1, surfInfo* sfI)
+{
+	const size_t maxIterCt = 10000;
+	bool flag = true;
+	size_t i = 0;
+
+	size_t dim = 2;
+	double* f = new double[dim];
+	double* dx;
+
+	float epsilon = 0.00001;
+	float len = 100000;
+	
+	bool corrupted = false;
+
+	int counter = 0;
+
+	while (flag && (maxIterCt > i))
 	{
-		std::cout << "Len is: " << len << "\n";
-	}*/
+		counter++;
+
+		corrupted = false;
+		//(*ptIJ->pt) = SurfacePoint(sfI, ptIJ->u, ptIJ->v);
+
+		vertex** IJder = SurfaceDerivsAlg1(sfI, ptIJ->u, ptIJ->v, 1);
+		getJakobain(W, ptIJ, ptIm1J, ptIJm1, IJder);
+		getF(f, &ptIJ->pt->pos, &ptIm1J->pt->pos, &ptIJm1->pt->pos);//@todo Optimize memory using. At each iteration memory allocation happens. It too much heavy
+		
+		//std::cout << "\n f is: " << f[0] << "\n" << f[1] << "\n";
+
+		double** L = new double*[2];
+		double** U = new double*[2];
+		LUDecomposition(W, dim, &L, &U);
+		dx = LUForwardBackward(L, U, f, 2);
+		dx[0] *= 0.001;
+		dx[1] *= 0.001;
+		if ((ptIJ->u + dx[0] < 0) || (ptIJ->v + dx[1] < 0) || (ptIJ->u + dx[0] > 1) || (ptIJ->v + dx[1] > 1)) corrupted = true;
+
+		
+		if (ptIJ->v + dx[1] < 0)
+		{
+			while (ptIJ->v + dx[1] < 0)
+			{
+				//dx[1] = 1 + dx[1];
+				dx[1] = 0;
+			}
+		}
+		else
+			if (ptIJ->v + dx[1] > 1)
+			{
+				while (ptIJ->v + dx[1] > 1)
+				{
+					dx[1] = -1 + dx[1];
+					dx[0] += 0.5;
+				}
+			}
+		if (ptIJ->u + dx[0] < 0)
+		{
+			while (ptIJ->u + dx[0] < 0)
+				dx[0] = 1 + dx[0];
+		}
+		else
+			if (ptIJ->u + dx[0] > 1)
+			{
+				while (ptIJ->u + dx[0] > 1)
+					dx[0] = -1. + dx[0];
+			}
+
+		vertex bufV = SurfacePoint(sfI, ptIJ->u + dx[0], ptIJ->v + dx[1]);
+		len = sqrt(pow((ptIJ->pt->pos.x - bufV.pos.x), 2) + pow((ptIJ->pt->pos.y - bufV.pos.y), 2) + pow((ptIJ->pt->pos.z - bufV.pos.z), 2));
+		/*std::cout << "Len is: " << len << "\n";
+		std::cout << "A is: " << A << "\nB is: " << B
+			<< "\ncaluclate A is: " << pow((ptIJ->pt->pos.x - ptIm1J->pt->pos.x), 2) + pow((ptIJ->pt->pos.y - ptIm1J->pt->pos.y), 2) +
+			pow((ptIJ->pt->pos.z - ptIm1J->pt->pos.z), 2)
+			<< "\ncaluclate B is: " << pow((ptIJ->pt->pos.x - ptIJm1->pt->pos.x), 2) + pow((ptIJ->pt->pos.y - ptIJm1->pt->pos.y), 2) +
+			pow((ptIJ->pt->pos.z - ptIJm1->pt->pos.z), 2) << "\n";*/
+			
+		ptIJ->u += dx[0];
+		ptIJ->v += dx[1];
+		(*ptIJ->pt) = bufV;
+
+		for (size_t ct1 = 0; ct1 < dim; ++ct1)
+		{
+			delete[] L[ct1];
+			delete[] U[ct1];
+			delete[] IJder[ct1];
+		}
+		delete[] L;
+		delete[] U;
+		delete[] dx;
+		delete[] IJder;
+
+		if ((len <= epsilon) && !corrupted) 
+		//if ((fabs(f[0]) < 0.01) && (fabs(f[1]) < 0.01))
+		{
+			flag = false;
+			break;
+		}
+		++i;
+
+	}
+
+	delete[] f;
 
 	return !flag;
 }
 
+void getJakobain(double** W, bSplinePt* ptIJ, bSplinePt* ptIm1J, bSplinePt* ptIJm1, vertex** IJder)
+{	W[0][0] = 2 * (ptIJ->pt->pos.x - ptIm1J->pt->pos.x) * IJder[1][0].pos.x + 2 * (ptIJ->pt->pos.y - ptIm1J->pt->pos.y) * IJder[1][0].pos.y +
+		+2 * (ptIJ->pt->pos.z - ptIm1J->pt->pos.z) * IJder[1][0].pos.z;
+	W[0][1] = 2 * (ptIJ->pt->pos.x - ptIm1J->pt->pos.x) * IJder[0][1].pos.x + 2 * (ptIJ->pt->pos.y - ptIm1J->pt->pos.y) * IJder[0][1].pos.y +
+		+2 * (ptIJ->pt->pos.z - ptIm1J->pt->pos.z) * IJder[0][1].pos.z;
+
+	W[1][0] = 2 * (ptIJ->pt->pos.x - ptIJm1->pt->pos.x) * IJder[1][0].pos.x + 2 * (ptIJ->pt->pos.y - ptIJm1->pt->pos.y) * IJder[1][0].pos.y +
+		+2 * (ptIJ->pt->pos.z - ptIJm1->pt->pos.z) * IJder[1][0].pos.z;
+	W[1][1] = 2 * (ptIJ->pt->pos.x - ptIJm1->pt->pos.x) * IJder[0][1].pos.x + 2 * (ptIJ->pt->pos.y - ptIJm1->pt->pos.y) * IJder[0][1].pos.y +
+		+2 * (ptIJ->pt->pos.z - ptIJm1->pt->pos.z) * IJder[0][1].pos.z;
+}
+
+/*
 vertex** makeGird()
 {
 
@@ -619,6 +724,7 @@ vertex** makeGird()
 
 	return res;
 }
+*/
 
 //Конвертирует из декартовых в параметрические. Возвращает угол фи. 
 float getFiAngle(vertex** gird, size_t i, size_t j)

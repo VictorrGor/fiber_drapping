@@ -185,15 +185,16 @@ vertex operator/(const vertex& _vx, const double& _multiplier)
 	return res;
 }
 
-vertex* convert2DimArrayTo1(vertex** mx, size_t n, size_t m)
+vertex* convert2DimArrayTo1(vertex** mx, UINT n, UINT m)
 {
 	vertex* res = new vertex[n * m];
-	for (size_t i = 0; i < n; ++i)
-		for (size_t j = 0; j < m; ++j)
+	for (UINT i = 0; i < n; ++i)
+		for (UINT j = 0; j < m; ++j)
 			res[i * n + j] = mx[i][j];
 
 	return res;
 }
+
 
 surfInfo::surfInfo()
 {
@@ -305,4 +306,28 @@ surfInfo& surfInfo::operator=(const surfInfo& obj)
 surfInfo::surfInfo(vertex** cp, size_t _n, size_t _m, size_t _p, size_t _q, double* _Uk, double* _Vl) : controlPoints(cp),
 	n(_n), m(_m), p(_p), q(_q), Uk(_Uk), Vl(_Vl)
 {
+}
+
+bSplinePt::bSplinePt()
+{
+	this->pt = nullptr;
+	this->u = -1;
+	this->v = -1;
+}
+
+bSplinePt::~bSplinePt()
+{
+	this->pt = nullptr;
+}
+
+bSplinePt::bSplinePt(vertex* _pt, double _u, double _v): pt(_pt), u(_u), v(_v)
+{
+}
+
+bSplinePt& bSplinePt::operator=(const bSplinePt& obj)
+{
+	this->pt = obj.pt;
+	this->u = obj.u;
+	this->v = obj.v;
+	return *this;
 }
