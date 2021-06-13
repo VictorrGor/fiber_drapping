@@ -470,6 +470,8 @@ bool getBSplineDrapPoint(double** W, double** invW, bSplinePt* ptIJ, bSplinePt* 
 
 	int counter = 0;
 
+	double** L = new double* [2];
+	double** U = new double* [2];
 	while (flag && (maxIterCt > i))
 	{
 		counter++;
@@ -483,13 +485,11 @@ bool getBSplineDrapPoint(double** W, double** invW, bSplinePt* ptIJ, bSplinePt* 
 		
 		//std::cout << "\n f is: " << f[0] << "\n" << f[1] << "\n";
 
-		double** L = new double*[2];
-		double** U = new double*[2];
 		LUDecomposition(W, dim, &L, &U);
 		dx = LUForwardBackward(L, U, f, 2);
 		dx[0] *= 0.001;
 		dx[1] *= 0.001;
-		if ((ptIJ->u + dx[0] < 0) || (ptIJ->v + dx[1] < 0) || (ptIJ->u + dx[0] > 1) || (ptIJ->v + dx[1] > 1)) corrupted = true;
+		//if ((ptIJ->u + dx[0] < 0) || (ptIJ->v + dx[1] < 0) || (ptIJ->u + dx[0] > 1) || (ptIJ->v + dx[1] > 1)) corrupted = true;
 
 		
 		if (ptIJ->v + dx[1] < 0)
@@ -540,8 +540,6 @@ bool getBSplineDrapPoint(double** W, double** invW, bSplinePt* ptIJ, bSplinePt* 
 			delete[] U[ct1];
 			delete[] IJder[ct1];
 		}
-		delete[] L;
-		delete[] U;
 		delete[] dx;
 		delete[] IJder;
 
@@ -554,6 +552,8 @@ bool getBSplineDrapPoint(double** W, double** invW, bSplinePt* ptIJ, bSplinePt* 
 		++i;
 
 	}
+	delete[] L;
+	delete[] U;
 
 	delete[] f;
 

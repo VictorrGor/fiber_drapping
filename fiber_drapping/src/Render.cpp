@@ -801,81 +801,81 @@ void RenderSys::drawDrappingPoints(vertex** points)
 HRESULT RenderSys::InitObjects()
 {
 	HRESULT hRes = S_OK;
-	//drawSinSurf();
-	UINT surf_size = 3;
-	vertex* surf = new vertex[surf_size * surf_size];
-	float step = 100. / surf_size;
+	drawSinSurf();
+	//UINT surf_size = 3;
+	//vertex* surf = new vertex[surf_size * surf_size];
+	//float step = 100. / surf_size;
 
-	float step_fi = 0.5 * XM_PI / surf_size;
+	//float step_fi = 0.5 * XM_PI / surf_size;
 
-	
-	//Draw surface
-	for (UINT i = 0; i < surf_size; ++i)
-	{
-		for (UINT j = 0; j < surf_size; ++j)
-		{
-			surf[i * surf_size + j].pos = vec3(i * step, sin(i * step_fi) * sin(j * step_fi) * 0.4, j *	step);
-			surf[i * surf_size + j].Color = vec4(1 * i  * step, 1 * j * step, 0, 1); 
-		}
-	}
+	//
+	////Draw surface
+	//for (UINT i = 0; i < surf_size; ++i)
+	//{
+	//	for (UINT j = 0; j < surf_size; ++j)
+	//	{
+	//		surf[i * surf_size + j].pos = vec3(i * step, sin(i * step_fi) * sin(j * step_fi) * 0.4, j *	step);
+	//		surf[i * surf_size + j].Color = vec4(1 * i  * step, 1 * j * step, 0, 1); 
+	//	}
+	//}
 
-	Object* obj_surf = new Object(this, pVxSh, pPxSh, surf_size * surf_size, surf, D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
-	this->objects.push_back(obj_surf);
+	//Object* obj_surf = new Object(this, pVxSh, pPxSh, surf_size * surf_size, surf, D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+	//this->objects.push_back(obj_surf);
 
-	UINT idx_size = (surf_size - 1) * (surf_size - 1) * 6;
-	UINT* indices = new UINT[idx_size];
-	UINT counter = 0;
+	//UINT idx_size = (surf_size - 1) * (surf_size - 1) * 6;
+	//UINT* indices = new UINT[idx_size];
+	//UINT counter = 0;
 
-	//Vertices for normal calculating
-	vertex* v0, *v1, *v2;
-	vec3 normal;
-	//Make indices and calculate normals
-	for (UINT i = 0; i < surf_size - 1; ++i)
-	{
-		for (UINT j = 0; j < surf_size - 1; ++j)
-		{
-			indices[counter] = i * surf_size + j;
-			indices[counter + 1] = i * surf_size + j + 1;
-			indices[counter + 2] = (i+1) * surf_size + j;
-			v0 = surf + i * surf_size + j;
-			v1 = surf + i * surf_size + j + 1;
-			v2 = surf + (i + 1) * surf_size + j;
-			normal = calculateTriangleNormal(*v0, *v1, *v2);
-			v0->normal = v0->normal + normal;
-			v1->normal = v1->normal + normal;
-			v2->normal = v2->normal + normal;
-
-
-			indices[counter + 3] = i * surf_size + j + 1;
-			indices[counter + 4] = (i+1) * surf_size + j + 1;
-			indices[counter + 5] = (i+1) * surf_size + j;
-			v0 = surf + i * surf_size + j + 1;
-			v1 = surf + (i + 1) * surf_size + j + 1;
-			v2 = surf + (i + 1) * surf_size + j;
-			normal = calculateTriangleNormal(*v0, *v1, *v2);
-			v0->normal = v0->normal + normal;
-			v1->normal = v1->normal + normal;
-			v2->normal = v2->normal + normal;
-			counter += 6;
-		}
-	}
-
-	vec3 actual_normal;
-	//Normalize normals
-	for (UINT i = 0; i < surf_size; ++i)
-	{
-		for (UINT j = 0; j < surf_size; ++j)
-		{
-			XMStoreFloat3(&actual_normal, XMVector3Normalize(XMLoadFloat3(&surf[i * surf_size + j].normal)));
-			surf[i * surf_size + j].normal = actual_normal;
-		}
-	}
+	////Vertices for normal calculating
+	//vertex* v0, *v1, *v2;
+	//vec3 normal;
+	////Make indices and calculate normals
+	//for (UINT i = 0; i < surf_size - 1; ++i)
+	//{
+	//	for (UINT j = 0; j < surf_size - 1; ++j)
+	//	{
+	//		indices[counter] = i * surf_size + j;
+	//		indices[counter + 1] = i * surf_size + j + 1;
+	//		indices[counter + 2] = (i+1) * surf_size + j;
+	//		v0 = surf + i * surf_size + j;
+	//		v1 = surf + i * surf_size + j + 1;
+	//		v2 = surf + (i + 1) * surf_size + j;
+	//		normal = calculateTriangleNormal(*v0, *v1, *v2);
+	//		v0->normal = v0->normal + normal;
+	//		v1->normal = v1->normal + normal;
+	//		v2->normal = v2->normal + normal;
 
 
-	obj_surf = new Object(this, pVxSh, pPxSh, surf_size * surf_size, surf, D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, idx_size, indices);
-	obj_surf->setMaterial(true, vec4(1, 0, 0, 1), vec4(0, 1, 0, 1), vec4(1, 1, 1, 0.4), vec4(0.3, 0, 0, 1));
-	this->objects.push_back(obj_surf);
+	//		indices[counter + 3] = i * surf_size + j + 1;
+	//		indices[counter + 4] = (i+1) * surf_size + j + 1;
+	//		indices[counter + 5] = (i+1) * surf_size + j;
+	//		v0 = surf + i * surf_size + j + 1;
+	//		v1 = surf + (i + 1) * surf_size + j + 1;
+	//		v2 = surf + (i + 1) * surf_size + j;
+	//		normal = calculateTriangleNormal(*v0, *v1, *v2);
+	//		v0->normal = v0->normal + normal;
+	//		v1->normal = v1->normal + normal;
+	//		v2->normal = v2->normal + normal;
+	//		counter += 6;
+	//	}
+	//}
 
+	//vec3 actual_normal;
+	////Normalize normals
+	//for (UINT i = 0; i < surf_size; ++i)
+	//{
+	//	for (UINT j = 0; j < surf_size; ++j)
+	//	{
+	//		XMStoreFloat3(&actual_normal, XMVector3Normalize(XMLoadFloat3(&surf[i * surf_size + j].normal)));
+	//		surf[i * surf_size + j].normal = actual_normal;
+	//	}
+	//}
+
+
+	//obj_surf = new Object(this, pVxSh, pPxSh, surf_size * surf_size, surf, D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, idx_size, indices);
+	//obj_surf->setMaterial(true, vec4(1, 0, 0, 1), vec4(0, 1, 0, 1), vec4(1, 1, 1, 0.4), vec4(0.3, 0, 0, 1));
+	//this->objects.push_back(obj_surf);
+	mp.transferToRender(this);
 	return hRes;
 }
 
@@ -1433,16 +1433,50 @@ vertex** RenderSys::drawSinSurf()
 	float step_teta = XM_PI / (m - 1);
 	float R = 1;
 
+	srand((unsigned)time(NULL));
 	for (UINT i = 0; i < n; ++i)
 		for (UINT j = 0; j < m; ++j)
-			Q[i][j].pos = vec3(i * step_fi, sin( j)* sin( i), (j * step_teta) );
-
-	surfInfo sfI = GenInterpBSplineSurface(n, m, Q, 3, 3);
+		{
+			Q[i][j].pos = vec3(i * step_fi, sin(j) * sin(i) * 0.85, (j * step_teta));
+			//Q[i][j].pos = vec3(i * step_fi, 0, (j * step_teta));
+			Q[i][j].Color = vec4((float)(rand()% 101) / 100, (float)(rand() % 101) / 100, (float)(rand() % 101) / 100,1);
+		}
 	Object* obj = new Object(this, pVxSh, pPxSh, n * m, convert2DimArrayTo1(Q, n, m), D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
 	objects.push_back(obj);
+
+
+	surfInfo sfI = GenInterpBSplineSurface(n, m, Q, 3, 3);
+	Q = new vertex * [n];
+	for (UINT i = 0; i < n; ++i) Q[i] = new vertex[m];
+	
+	for (UINT i = 0; i < n; ++i)
+		for (UINT j = 0; j < m; ++j)
+		{
+			Q[i][j] = SurfacePoint(&sfI, (float)i / (n-1), (float)j / (m - 1));
+			Q[i][j].Color = vec4((float)(rand() % 101) / 100, (float)(rand() % 101) / 100, (float)(rand() % 101) / 100, 1);
+		}
+	UINT* indices = new UINT[(n-1) * (m-1) * 6];
+	UINT counter = 0;
+	for (UINT i = 0; i < n-1-3; ++i)
+		for (UINT j = 0; j < m-1-3; ++j)
+		{
+			indices[counter]   = i * m + j;
+			indices[counter+1] = i * m + (j + 1);
+			indices[counter+2] = (i + 1) * m + j;
+
+			indices[counter + 3] = i * m + (j + 1);
+			indices[counter + 4] = (i + 1) * m + (j + 1);
+			indices[counter + 5] = (i + 1) * m + j;
+			counter += 6;
+		}
+	
+	obj = new Object(this, pVxSh, pPxSh, n * m, convert2DimArrayTo1(Q, n, m), D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, counter, indices);
+	obj->setMaterial(true, vec4(1, 0, 0, 1), vec4(1, 0.5, 0, 1), vec4(1, 0, 0, 1), vec4(1, 0, 0, 1));
+	//objects.push_back(obj);
+
 	//drawLineOnBSplineSurface(&sfI, 0, 0, true);
-	drawLineOnBSplineSurface(&sfI, 0., 0., false);
-	drawLineOnBSplineSurface(&sfI, 0., 0., true);
+	//drawLineOnBSplineSurface(&sfI, 0., 0., false);
+	//drawLineOnBSplineSurface(&sfI, 0., 0., true);
 	//drawLineOnBSplineSurface(&sfI, 0.75, 0., true);
 	drapping_part(&sfI, 0., 0, true, 0., 0, false);
 	/*drapping_part(&sfI, 0.25, 0, true, 0.5, 0, true);

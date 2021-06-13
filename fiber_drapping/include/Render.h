@@ -256,31 +256,30 @@ public:
 		{
 			if (isU1)
 			{
-				Q[0][i] = SurfacePoint(sfI, u1, 1 - i * cycle_step);
 				P[0][i].u = u1;
-				P[0][i].v = 1 - i * cycle_step;
+				P[0][i].v = i * cycle_step;
 			}
 			else
 			{
-				Q[0][i] = SurfacePoint(sfI, 1 - i * cycle_step, v1);
-				P[0][i].u = 1 - i * cycle_step;
+				P[0][i].u = i * cycle_step;
 				P[0][i].v = v1;
 			}
 			if (isU2)
 			{ 
-				Q[i][0] = SurfacePoint(sfI, u2, 1 - i * cycle_step);
 				P[i][0].u = u2;
-				P[i][0].v = 1 - i * cycle_step;
+				P[i][0].v = i * cycle_step;
 			}
 			else
 			{
-				Q[i][0] = SurfacePoint(sfI, 1 - i * cycle_step, v2);
-				P[i][0].u = 1 - i * cycle_step;
+				P[i][0].u = i * cycle_step;
 				P[i][0].v = v2;
 			}
+			Q[0][i] = SurfacePoint(sfI, P[0][i].u, P[0][i].v);
+			Q[i][0] = SurfacePoint(sfI, P[i][0].u, P[i][0].v);
 		}
 
 		double delta_u = 0.01;
+		
 		for (UINT i = 0; i < size - 1; ++i)
 		{
 			for (UINT j = 0; j < size - 1/*size - 1*/; ++j)
@@ -293,8 +292,8 @@ public:
 				bSplinePt* ptIm1J = &P[i][j + 1];
 				bSplinePt* ptIJm1 = &P[i + 1][j];
 
-				ptIJ->u = (ptIJm1->u + ptIm1J->u) / 2 ;
-				ptIJ->v = min(ptIJm1->v, ptIm1J->v) - 2 ;// ptIJm1->v - 2* delta_u;
+				ptIJ->u = ptIJm1->u;
+				ptIJ->v = ptIm1J->v;// ptIJm1->v - 2* delta_u;
 				if (ptIJ->u > 1) ptIJ->u -= 2 * delta_u;
 				if (ptIJ->v > 1) ptIJ->v -= 2 * delta_u;
 				if (ptIJ->u < 0) ptIJ->u = (ptIJm1->u + ptIm1J->u) /2;//0;
@@ -302,7 +301,9 @@ public:
 
 				(*ptIJ->pt) = SurfacePoint(sfI, ptIJ->u, ptIJ->v);
 
+#ifdef _DEBUG
 				std::cout << "\ti:" << i << "; j:" << j << "\n";
+#endif
 				if (!getBSplineDrapPoint(W, invW, ptIJ, ptIm1J, ptIJm1, sfI))
 				{
 					ptIJ->u = -1;
@@ -318,7 +319,9 @@ public:
 		Object* obj = new Object(this, pVxSh, pPxSh, size * size /*size * size*/, convert2DimArrayTo1(Q, size, size), D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
 		objects.push_back(obj);
 		Object* obj1 = new Object(this, pVxSh, pPxSh, size * size /*size * size*/, convert2DimArrayTo1(Q, size, size), D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP);
-		//objects.push_back(obj1);
+		objects.push_back(obj1);
+
+
 
 		for (UINT i = 0; i < size - 1; ++i)
 		{
@@ -346,8 +349,8 @@ public:
 				}
 
 				triangle[0] = Q[i][j];
-				triangle[1] = Q[i+1][j];
-				triangle[2] = Q[i][j+1];
+				triangle[1] = Q[i][j + 1];
+				triangle[2] = Q[i + 1][j];
 
 				triangle[0].Color = vec4(red, green, blue, 1);
 				triangle[1].Color = vec4(red, green, blue, 1);
@@ -382,8 +385,8 @@ public:
 				if ((P[i+1][j+1].u < 0) || (P[i][j + 1].u < 0) || (P[i + 1][j].u < 0))
 					continue;
 				triangle[0] = Q[i+1][j];
-				triangle[1] = Q[i + 1][j + 1];
-				triangle[2] = Q[i][j + 1];
+				triangle[1] = Q[i][j + 1];
+				triangle[2] = Q[i + 1][j + 1];
 
 				triangle[0].Color = vec4(red, green, blue, 1);
 				triangle[1].Color = vec4(red, green, blue, 1);
@@ -398,8 +401,15 @@ public:
 			delete[] Q[i];
 			delete[] P[i];
 		}
+		for (UINT i = 0; i < dim; ++i)
+		{
+			delete W[i];
+			delete invW[i];
+		}
 		delete[] Q;
 		delete[] P;
+		delete[] W;
+		delete[] invW;
 	}
 
 	void test_surface()
