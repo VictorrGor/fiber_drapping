@@ -573,7 +573,7 @@ double* LUForwardBackward(double** L, double** U, double* b, size_t q)
 		y[i] /= U[i][i];
 		res[i] = y[i];
 	}
-
+	delete[] y;
 	return res;
 }
 
@@ -764,6 +764,8 @@ vertex SurfacePoint(surfInfo* sfI, double u, double v)
 		}
 		S += Nv[l] * temp;
 	}
+	delete[] Nu;
+	delete[] Nv;
 	return S;
 }
 
@@ -808,6 +810,12 @@ vertex** SurfaceDerivsAlg1(surfInfo* sfI, double u, double v, size_t d)
 			}
 		}
 	}
+	for (int i = 0; i <= sfI->n; ++i) delete[] Nu[i];
+	for (int i = 0; i <= sfI->m; ++i) delete[] Nv[i];
+	delete[] Nu;
+	delete[] Nv;
+	delete[] temp;
+
 	return SKL;
 }
 
