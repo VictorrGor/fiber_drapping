@@ -18,8 +18,6 @@ struct PointLight
 	float4 Specular; 
 	float3 Position; 
 	float Range; 
-	float3 Att; 
-	float pad; 
 };
 
 struct Material
@@ -40,10 +38,9 @@ struct light
 
 cbuffer cbPerFrame : register(b0)
 {
-	//PointLight gPointLight;
-	light ll;
+	PointLight gPointLight;
 	float3 gEyePosW;
-	//float4x4 mVWP;
+	float dummy;
 };
 
 cbuffer cbPerObject : register(b1)
@@ -61,46 +58,27 @@ float4 main(VS_INPUT input) : SV_Target
 {
 	if (isMaterial[0])
 	{
-		float3 lightVec = -ll.dir;
+		float3 lightVec = gPointLight.Position - input.WorldPos.xyz;
 		float3 toEyeW = normalize(gEyePosW - input.WorldPos.xyz);
-		float d = length(lightVec);
-		lightVec /= d;
+		float lightVecDistance = length(lightVec);
+		lightVec /= lightVecDistance;
 
 		input.Normal = normalize(input.Normal);
-
-		float4 diff = (max(dot(input.Normal, lightVec), 0)) * ll.diffuse;
-		float4 ambient = Ambient * ll.ambient;
-		//float3 toEye = gEyePosW - input.Pos.xyz;
+		float4 ambient = Ambient * gPointLight.Ambient;
 		float4 spec = float4(0, 0, 0, 0);
+		float4 diff = float4(0, 0, 0, 0);
+		
+		if (lightVecDistance <= gPointLight.Range)
+		{
+			diff = (max(dot(input.Normal, lightVec), 0)) * gPointLight.Diffuse * Diffuse;
 
-		float3 v = reflect(-lightVec, input.Normal);
-		float specFactor = pow(max(dot(v, toEyeW), 0.0f), 32);
-		spec = specFactor * Specular * ll.diffuse;
-		float3 res = diff + ambient;// +spec;
+			float3 v = reflect(-lightVec, input.Normal);
+			float specFactor = pow(max(dot(v, toEyeW), 0.0f), 32);
+			spec = specFactor * Specular * gPointLight.Specular;
+		}
+
+		float3 res = diff + ambient + spec;
 		return  float4(res, 1.0f);
-	//	float4 plPos = mul(gPointLight.Position, mVWP);
-
-	//	float3 finalColor = float3(0.0f, 0.0f, 0.0f);
-
-	//	float3 lightVec = plPos - input.Pos.xyz;
-	//	float3 toEye = gEyePosW - input.Pos.xyz;
-
-	//	float4 finalAmbient = mat.Ambient * gPointLight.Ambient;
-	//	float len = length(lightVec);
-	//	
-	//	len = length(input.Pos.xyz);
-	//	if (len > 10) return float4(1,0,0,1);
-	//	if (input.Pos.y > 1) return float4(0, 1, 0, 1);
-	//	if (input.Pos.z > 1) return float4(0, 0, 1, 1);
-	//	if (len > 100) return float4(0.9, 0.1, 0.1, 1);//finalAmbient;
-	//	lightVec /= len;
-
-	//	
-	//	float4 res = mat.Ambient * float4(0, 0, 0, 0) ; /*Фонового освещениея нет*/
-	//	float ll = dot(lightVec, input.Normal);
-	//	res = res + mat.Diffuse * ll;//diffuse
-	//	res += mat.Specular * dot(-lightVec, toEye);
-	//	return float4(finalColor, mat.Diffuse.a);
 	}
 	return input.Color;
 }

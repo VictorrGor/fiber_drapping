@@ -19,8 +19,6 @@ struct PointLight
 	XMFLOAT4 Specular; // Packed into 4D vector: (Position, Range) 
 	XMFLOAT3 Position;
 	float Range; // Packed into 4D vector: (A0, A1, A2, Pad) 
-	XMFLOAT3 Att;
-	float Pad; // Pad the last float so we can set an // array of lights if we wanted. 
 };
 
 struct Light
@@ -107,7 +105,7 @@ struct vertexCB
 
 struct PS_perFrame_CB
 {
-	Light ll;
+	PointLight ll;
 	XMFLOAT3 eyePos;
 	float dummy;
 };

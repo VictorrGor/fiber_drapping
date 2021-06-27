@@ -6,7 +6,7 @@
 
 #define CLOTH_WIDTH 1.
 #define CLOTH_HEIGHT 1.
-#define GIRD_SIZE 100
+#define GIRD_SIZE 1000
 
 constexpr float R = 1;
 constexpr float A = DirectX::XM_PI/2 * R / ((GIRD_SIZE - 1));

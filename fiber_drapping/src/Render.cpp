@@ -129,7 +129,7 @@ Object::Object(RenderSys* _rs, ID3D11VertexShader* _pVxSh, ID3D11PixelShader* _p
 		D3D11_BUFFER_DESC bd;
 		ZeroMemory(&bd, sizeof(bd));
 		bd.Usage = D3D11_USAGE_DEFAULT;
-		bd.ByteWidth = sizeof(size_t) * indexCount;
+		bd.ByteWidth = sizeof(UINT) * indexCount;
 		bd.BindFlags = D3D11_BIND_INDEX_BUFFER;
 		bd.CPUAccessFlags = 0;
 		bd.MiscFlags = 0;
@@ -204,12 +204,15 @@ void RenderSys::Render()
 	float R = 1. * mouse->wheel_pos * 0.1;
 	static float h = 1.3;
 
-	Light light;
-	light.Direction = XMFLOAT3(0.25f, 1, 0.50f);
-	light.Ambient = XMFLOAT4(0.2f, 0.2f, 0.2f, 1.0f);
-	light.Diffuse = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+	//Light light;
+	//light.Direction = XMFLOAT3(0.25f, 1, 0.50f);
+	//light.Ambient = XMFLOAT4(0.2f, 0.2f, 0.2f, 1.0f);
+	//light.Diffuse = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 	PS_perFrame_CB perFrame;
-	perFrame.ll = light;
+	if (this->pointLightObjects.size())
+	{
+		perFrame.ll = *(this->pointLightObjects.back());
+	}
 
 	static float t = 0.0f;
 	{
@@ -513,6 +516,135 @@ HRESULT RenderSys::InitDevice(HWND* hWnd)
 	return hRes;
 }
 
+void RenderSys::lighting_test()
+{
+	//Generate plane
+	int plane_size = 100;
+	vertex* plane = new vertex[plane_size* plane_size];
+
+	for (int i = 0; i < plane_size; ++i)
+	{
+		for (int j = 0; j < plane_size; ++j)
+		{
+			plane[i * plane_size + j].pos = vec3(i * 1. / (plane_size-1) - 0.5, 0, j * 1. / (plane_size - 1) - 0.5);
+			plane[i * plane_size + j].Color = vec4(0, 1, 0.5, 1);
+		}
+	}
+
+	UINT* indicies = new UINT[(plane_size - 1) * (plane_size - 1) * 6];
+	UINT counter = 0;
+	vertex* vx1, *vx2, *vx3;
+	for (int i = 0; i < plane_size - 1; ++i)
+		for (int j = 0; j < plane_size - 1; ++j)
+		{
+			indicies[counter] = i * plane_size + j;
+			indicies[counter + 1] = i * plane_size + j + 1;
+			indicies[counter + 2] = (i + 1) * plane_size + j;
+			counter += 3;
+			vx1 = &plane[i * plane_size + j];
+			vx2 = &plane[i * plane_size + j + 1];
+			vx3 = &plane[(i + 1) * plane_size + j];
+			vx1->normal = calculateTriangleNormal(*vx1, *vx2, *vx3);
+			vx2->normal = vx1->normal;
+			vx3->normal = vx1->normal;
+
+			indicies[counter] = i * plane_size + j + 1;
+			indicies[counter + 1] = (i + 1) * plane_size + j + 1;
+			indicies[counter + 2] = (i + 1) * plane_size + j;
+
+			vx1 = &plane[i * plane_size + j + 1];
+			vx2 = &plane[(i + 1) * plane_size + j + 1];
+			vx3 = &plane[(i + 1) * plane_size + j];
+			vx1->normal = calculateTriangleNormal(*vx1, *vx2, *vx3);
+			vx2->normal = vx1->normal;
+			vx3->normal = vx1->normal;
+
+			counter += 3;
+		}
+
+	Object* plane_obj = new Object(this, pVxSh, pPxSh, plane_size * plane_size, plane, D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, counter, indicies);
+	plane_obj->setMaterial(true, vec4(0., 1., 0., 1), vec4(0, 1, 0, 1), vec4(1, 0, 0, 1));
+	this->objects.push_back(plane_obj);
+
+
+	vertex* cube = new vertex[8];
+	cube[0].pos = vec3(-0.1, 0, -0.1);
+	cube[1].pos = vec3( 0.1,  0, -0.1);
+	cube[2].pos = vec3( 0.1,  0,  0.1);
+	cube[3].pos = vec3(-0.1, 0,  0.1);
+
+	cube[4].pos = vec3(-0.1, 0.2, -0.1);
+	cube[5].pos = vec3( 0.1,  0.2, -0.1);
+	cube[6].pos = vec3( 0.1,  0.2,  0.1);
+	cube[7].pos = vec3(-0.1, 0.2,  0.1);
+
+
+	UINT* cube_indices = new UINT[36];
+	for (int i = 0; i < 3; ++i)
+	{
+		cube_indices[0 + i * 6] = 0+i;
+		cube_indices[1 + i * 6] = 4+i;
+		cube_indices[2 + i * 6] = 1+i;
+		vx1 = &cube[0 + i];
+		vx2 = &cube[4 + i];
+		vx3 = &cube[1 + i];
+		vx1->normal = calculateTriangleNormal(*vx1, *vx2, *vx3);
+		vx2->normal = vx1->normal;
+		vx3->normal = vx1->normal;
+
+		cube_indices[3 + i * 6] = 1+i;
+		cube_indices[4 + i * 6] = 4 + i;
+		cube_indices[5 + i * 6] = 5+i;
+		vx1 = &cube[1 + i];
+		vx2 = &cube[4 + i];
+		vx3 = &cube[5 + i];
+		vx1->normal = calculateTriangleNormal(*vx1, *vx2, *vx3);
+		vx2->normal = vx1->normal;
+		vx3->normal = vx1->normal;
+	}
+	cube_indices[18] = 3;
+	cube_indices[19] = 7;
+	cube_indices[20] = 0;
+	vx1 = &cube[3];
+	vx2 = &cube[7];
+	vx3 = &cube[0];
+	vx1->normal = calculateTriangleNormal(*vx1, *vx2, *vx3);
+	vx2->normal = vx1->normal;
+	vx3->normal = vx1->normal;
+
+	cube_indices[21] = 7;
+	cube_indices[22] = 4;
+	cube_indices[23] = 0;
+	vx1 = &cube[7];
+	vx2 = &cube[4];
+	vx3 = &cube[0];
+	vx1->normal = calculateTriangleNormal(*vx1, *vx2, *vx3);
+	vx2->normal = vx1->normal;
+	vx3->normal = vx1->normal;
+
+	cube_indices[24] = 5;
+	cube_indices[25] = 4;
+	cube_indices[26] = 6;
+	vx1 = &cube[5];
+	vx2 = &cube[4];
+	vx3 = &cube[6];
+	vx1->normal = calculateTriangleNormal(*vx1, *vx2, *vx3);
+	vx2->normal = vx1->normal;
+	vx3->normal = vx1->normal;
+	cube_indices[27] = 4;
+	cube_indices[28] = 7;
+	cube_indices[29] = 6;
+	vx1 = &cube[4];
+	vx2 = &cube[7];
+	vx3 = &cube[6];
+	vx1->normal = calculateTriangleNormal(*vx1, *vx2, *vx3);
+	vx2->normal = vx1->normal;
+	vx3->normal = vx1->normal;
+
+	Object* cube_obj = new Object(this, pVxSh, pPxSh, 8, cube, D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, 30, cube_indices);
+	cube_obj->setMaterial(true, vec4(0., 0.7, 0., 1), vec4(0, 0.7, 0, 1), vec4(1, 0, 0, 1));//(true, vec4(0., 0.1, 0., 1), vec4(0, 0.7, 0, 1), vec4(0, 0.7, 0, 1));
+	this->objects.push_back(cube_obj);
+}
 
 void RenderSys::generateSphere()
 {
@@ -554,8 +686,19 @@ void RenderSys::generateSphere()
 HRESULT RenderSys::InitObjects()
 {
 	HRESULT hRes = S_OK;
+	//Generate Light points
+	PointLight* pl = new PointLight();
+	pl->Position = vec3(-0.5, 1, 0);
+	pl->Range = 2.;
+	pl->Ambient = vec4(0.5, 0.5, 0.5, 1);
+	pl->Diffuse = vec4(1., 1., 1., 1);
+	pl->Specular = vec4(1, 1., 1, 1);
+	this->pointLightObjects.push_back(pl);
+
+
 	//drawSinSurf();
-	generateSphere();
+	//generateSphere();
+	lighting_test();
 	
 	//UINT surf_size = 3;
 	//vertex* surf = new vertex[surf_size * surf_size];
@@ -1058,7 +1201,7 @@ vertex** RenderSys::drawSinSurf()
 		}
 	
 	obj = new Object(this, pVxSh, pPxSh, n * m, convert2DimArrayTo1(Q, n, m), D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, counter, indices);
-	obj->setMaterial(true, vec4(1, 0, 0, 1), vec4(1, 0.5, 0, 1), vec4(1, 0, 0, 1), vec4(1, 0, 0, 1));
+	//obj->setMaterial(true, vec4(1, 0, 0, 1), vec4(1, 0.5, 0, 1), vec4(1, 0, 0, 1), vec4(1, 0, 0, 1));
 	//objects.push_back(obj);
 
 	//drawLineOnBSplineSurface(&sfI, 0, 0, true);

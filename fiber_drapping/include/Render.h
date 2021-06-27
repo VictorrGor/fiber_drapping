@@ -113,6 +113,7 @@ class RenderSys
 	DirectX::XMMATRIX		g_Projection;
 
 	std::vector<Object*>	objects;
+	std::vector<PointLight*> pointLightObjects;
 
 	struct MemoryPool
 	{
@@ -273,7 +274,7 @@ public:
 
 		double delta_u = 0.01;
 		
-		for (UINT i = 0; i <  1; ++i)
+		for (UINT i = 0; i <  size - 1; ++i)
 		{
 			for (UINT j = 0; j < size - 1/*size - 1*/; ++j)
 			{
@@ -374,7 +375,7 @@ public:
 				triangle[0].Color = vec4(red, green, blue, 1);
 				triangle[1].Color = vec4(red, green, blue, 1);
 				triangle[2].Color = vec4(red, green, blue, 1);
-				//drawTriangle(triangle);
+				drawTriangle(triangle);
 			}
 		}
 		for (UINT i = 0; i < size - 1; ++i)
@@ -410,7 +411,7 @@ public:
 				triangle[0].Color = vec4(red, green, blue, 1);
 				triangle[1].Color = vec4(red, green, blue, 1);
 				triangle[2].Color = vec4(red, green, blue, 1);
-				//drawTriangle(triangle);
+				drawTriangle(triangle);
 			}
 		}
 
@@ -483,6 +484,8 @@ public:
 	
 	void coonsLines_new();
 	
+	void lighting_test();
+
 	HRESULT drawSpline(splineInfo _info);
 
 	HRESULT drawTriangle(vertex* _pt);
@@ -501,7 +504,7 @@ public:
 		XMVECTOR u_sse = XMLoadFloat3(&u);
 		XMVECTOR v_sse = XMLoadFloat3(&v);
 		XMFLOAT3 normal;
-		XMStoreFloat3(&normal, XMVector2Cross(u_sse, v_sse));
+		XMStoreFloat3(&normal, XMVector3Cross(u_sse, v_sse));
 		return normal;
 	};
 
