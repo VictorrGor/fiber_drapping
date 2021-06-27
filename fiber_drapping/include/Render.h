@@ -158,14 +158,7 @@ class RenderSys
 			{
 				if (!nextPool) nextPool = new MemoryPool();
 				
-				size_t usedThis = maxSize - objCount - 1;
-				nextPool->addNew((_pt + usedThis), _count - usedThis);
-
-				for (size_t i = 0; i < usedThis; ++i)
-				{
-					mem[objCount] = *(_pt+i);
-					++objCount;
-				}
+				nextPool->addNew(_pt, _count);
 			}
 			else
 			{
@@ -280,11 +273,10 @@ public:
 
 		double delta_u = 0.01;
 		
-		for (UINT i = 0; i < size - 1; ++i)
+		for (UINT i = 0; i <  1; ++i)
 		{
 			for (UINT j = 0; j < size - 1/*size - 1*/; ++j)
 			{
-
 				if ((P[i][j].u < 0) || (P[i][j + 1].u < 0) || (P[i + 1][j].u < 0))
 					continue;
 
@@ -294,6 +286,10 @@ public:
 
 				ptIJ->u = ptIJm1->u;
 				ptIJ->v = ptIm1J->v;// ptIJm1->v - 2* delta_u;
+				if ((ptIJ->u == ptIJm1->u) && (ptIJ->v == ptIJm1->v) || (ptIJ->u == ptIm1J->u) && (ptIJ->v == ptIm1J->v))
+				{
+					ptIJ->u = (ptIJm1->u + ptIm1J->u) / 2;
+				}
 				if (ptIJ->u > 1) ptIJ->u -= 2 * delta_u;
 				if (ptIJ->v > 1) ptIJ->v -= 2 * delta_u;
 				if (ptIJ->u < 0) ptIJ->u = (ptIJm1->u + ptIm1J->u) /2;//0;
@@ -304,6 +300,26 @@ public:
 #ifdef _DEBUG
 				std::cout << "\ti:" << i << "; j:" << j << "\n";
 #endif
+
+				if ((i == 0) && (j == 1))
+				{
+					vertex* trace;
+					int trace_size;
+					if (!getBSplineDrapPoint_with_trace(W, invW, ptIJ, ptIm1J, ptIJm1, sfI, &trace, trace_size))
+					{
+						ptIJ->u = -1;
+						ptIJ->v = -1;
+						++err_ct;
+						std::cout << err_ct << "\n";
+						std::cout << "\ti:" << i << "; j:" << j << "\n";
+					}
+					for (int i = 0; i < trace_size; ++i)
+					{
+						trace[i].Color = vec4(0, 1, i * (1. / (trace_size - 1)), 1.);
+					}
+					Object* trace_obj = new Object(this, pVxSh, pPxSh, trace_size, trace, D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP);
+					this->objects.push_back(trace_obj);
+				}
 				if (!getBSplineDrapPoint(W, invW, ptIJ, ptIm1J, ptIJm1, sfI))
 				{
 					ptIJ->u = -1;
@@ -312,14 +328,17 @@ public:
 					std::cout << err_ct << "\n";
 					std::cout << "\ti:" << i << "; j:" << j << "\n";
 				}
+#ifdef _DEBUG
+				std::cout << "\tu:" << ptIJ->u << "; v:" << ptIJ->v << "\n";
+#endif
 				ptIJ->pt->Color = vec4(0, 1, 0, 1);
 			}
 		}
 		std::cout << "\nDrapping errors: " << err_ct <<"\n";
 		Object* obj = new Object(this, pVxSh, pPxSh, size * size /*size * size*/, convert2DimArrayTo1(Q, size, size), D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
-		objects.push_back(obj);
+		//objects.push_back(obj);
 		Object* obj1 = new Object(this, pVxSh, pPxSh, size * size /*size * size*/, convert2DimArrayTo1(Q, size, size), D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP);
-		objects.push_back(obj1);
+		//objects.push_back(obj1);
 
 
 
@@ -355,7 +374,7 @@ public:
 				triangle[0].Color = vec4(red, green, blue, 1);
 				triangle[1].Color = vec4(red, green, blue, 1);
 				triangle[2].Color = vec4(red, green, blue, 1);
-				drawTriangle(triangle);
+				//drawTriangle(triangle);
 			}
 		}
 		for (UINT i = 0; i < size - 1; ++i)
@@ -391,7 +410,7 @@ public:
 				triangle[0].Color = vec4(red, green, blue, 1);
 				triangle[1].Color = vec4(red, green, blue, 1);
 				triangle[2].Color = vec4(red, green, blue, 1);
-				drawTriangle(triangle);
+				//drawTriangle(triangle);
 			}
 		}
 
@@ -458,7 +477,7 @@ public:
 		drapping_part(&sfI, 0.75, 0, true, 1, 0, true);
 	}
 
-	void drawDrappingPoints(vertex** points);
+	void generateSphere();
 
 	HRESULT InitObjects();
 	
@@ -469,8 +488,6 @@ public:
 	HRESULT drawTriangle(vertex* _pt);
 
 	Mouse* getMouse();
-	vertex** drawHyperboloid();
-	vertex** drawRocket();
 	vertex** drawSinSurf();
 
 	//u, v - parametric coordinates. isU - is true if u - const coordinate. 

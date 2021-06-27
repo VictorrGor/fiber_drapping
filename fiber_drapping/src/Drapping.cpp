@@ -560,6 +560,117 @@ bool getBSplineDrapPoint(double** W, double** invW, bSplinePt* ptIJ, bSplinePt* 
 	return !flag;
 }
 
+bool getBSplineDrapPoint_with_trace(double** W, double** invW, bSplinePt* ptIJ, bSplinePt* ptIm1J, bSplinePt* ptIJm1, surfInfo* sfI, vertex** traceMx, int& traceCnt)
+{
+	const size_t maxIterCt = 10000;
+	bool flag = true;
+	size_t i = 0;
+
+	size_t dim = 2;
+	double* f = new double[dim];
+	double* dx;
+
+	float epsilon = 0.00001;
+	float len = 100000;
+
+	bool corrupted = false;
+
+	int counter = 0;
+
+	(*traceMx) = new vertex[maxIterCt];
+	double** L = new double* [2];
+	double** U = new double* [2];
+	while (flag && (maxIterCt > i))
+	{
+		counter++;
+
+		corrupted = false;
+		//(*ptIJ->pt) = SurfacePoint(sfI, ptIJ->u, ptIJ->v);
+
+		vertex** IJder = SurfaceDerivsAlg1(sfI, ptIJ->u, ptIJ->v, 1);
+		getJakobain(W, ptIJ, ptIm1J, ptIJm1, IJder);
+		getF(f, &ptIJ->pt->pos, &ptIm1J->pt->pos, &ptIJm1->pt->pos);//@todo Optimize memory using. At each iteration memory allocation happens. It too much heavy
+
+		//std::cout << "\n f is: " << f[0] << "\n" << f[1] << "\n";
+
+		LUDecomposition(W, dim, &L, &U);
+		dx = LUForwardBackward(L, U, f, 2);
+		dx[0] *= 0.001;
+		dx[1] *= 0.001;
+		//if ((ptIJ->u + dx[0] < 0) || (ptIJ->v + dx[1] < 0) || (ptIJ->u + dx[0] > 1) || (ptIJ->v + dx[1] > 1)) corrupted = true;
+
+
+		if (ptIJ->v + dx[1] < 0)
+		{
+			while (ptIJ->v + dx[1] < 0)
+			{
+				//dx[1] = 1 + dx[1];
+				dx[1] = 0;
+			}
+		}
+		else
+			if (ptIJ->v + dx[1] > 1)
+			{
+				while (ptIJ->v + dx[1] > 1)
+				{
+					dx[1] = -1 + dx[1];
+					dx[0] += 0.5;
+				}
+			}
+		if (ptIJ->u + dx[0] < 0)
+		{
+			while (ptIJ->u + dx[0] < 0)
+				dx[0] = 1 + dx[0];
+		}
+		else
+			if (ptIJ->u + dx[0] > 1)
+			{
+				while (ptIJ->u + dx[0] > 1)
+					dx[0] = -1. + dx[0];
+			}
+
+		vertex bufV = SurfacePoint(sfI, ptIJ->u + dx[0], ptIJ->v + dx[1]);
+		len = sqrt(pow((ptIJ->pt->pos.x - bufV.pos.x), 2) + pow((ptIJ->pt->pos.y - bufV.pos.y), 2) + pow((ptIJ->pt->pos.z - bufV.pos.z), 2));
+		/*std::cout << "Len is: " << len << "\n";
+		std::cout << "A is: " << A << "\nB is: " << B
+			<< "\ncaluclate A is: " << pow((ptIJ->pt->pos.x - ptIm1J->pt->pos.x), 2) + pow((ptIJ->pt->pos.y - ptIm1J->pt->pos.y), 2) +
+			pow((ptIJ->pt->pos.z - ptIm1J->pt->pos.z), 2)
+			<< "\ncaluclate B is: " << pow((ptIJ->pt->pos.x - ptIJm1->pt->pos.x), 2) + pow((ptIJ->pt->pos.y - ptIJm1->pt->pos.y), 2) +
+			pow((ptIJ->pt->pos.z - ptIJm1->pt->pos.z), 2) << "\n";*/
+
+		ptIJ->u += dx[0];
+		ptIJ->v += dx[1];
+		(*ptIJ->pt) = bufV;
+		(*traceMx)[counter] = bufV;
+
+		for (size_t ct1 = 0; ct1 < dim; ++ct1)
+		{
+			delete[] L[ct1];
+			delete[] U[ct1];
+			delete[] IJder[ct1];
+		}
+		delete[] dx;
+		delete[] IJder;
+
+		if ((len <= epsilon) && !corrupted)
+			//if ((fabs(f[0]) < 0.01) && (fabs(f[1]) < 0.01))
+		{
+			flag = false;
+			break;
+		}
+		++i;
+
+	}
+
+	traceCnt = counter;
+	delete[] L;
+	delete[] U;
+
+	delete[] f;
+
+	return !flag;
+}
+
 void getJakobain(double** W, bSplinePt* ptIJ, bSplinePt* ptIm1J, bSplinePt* ptIJm1, vertex** IJder)
 {	W[0][0] = 2 * (ptIJ->pt->pos.x - ptIm1J->pt->pos.x) * IJder[1][0].pos.x + 2 * (ptIJ->pt->pos.y - ptIm1J->pt->pos.y) * IJder[1][0].pos.y +
 		+2 * (ptIJ->pt->pos.z - ptIm1J->pt->pos.z) * IJder[1][0].pos.z;
@@ -572,167 +683,13 @@ void getJakobain(double** W, bSplinePt* ptIJ, bSplinePt* ptIm1J, bSplinePt* ptIJ
 		+2 * (ptIJ->pt->pos.z - ptIJm1->pt->pos.z) * IJder[0][1].pos.z;
 }
 
-/*
-vertex** makeGird()
-{
 
-	float R = 1;
-
-	vertex** res = new vertex * [GIRD_SIZE];//Моделируются сейчас только оси
-	for (int i = 0; i < GIRD_SIZE; ++i)
-	{
-		res[i] = new vertex[GIRD_SIZE];
-		memset(res[i], 0, sizeof(vertex) * GIRD_SIZE);
-	}
-
-	float fi = DirectX::XM_PIDIV2;
-	float teta = 0;
-	float step_teta = DirectX::XM_PI / (GIRD_SIZE - 1);
-	float step_fi = DirectX::XM_PIDIV2;
-
-
-	//Наложение главных осей на сетку
-	float FI = 0;
-	size_t index = (GIRD_SIZE - 1) / 2;
-	for (size_t j = 0; j < GIRD_SIZE; ++j)
-	{
-		float TETA = step_teta * j;
-		res[index][j] = vertex();
-		res[index][j].Color = vec4(1, 0, 0, 1);
-		res[index][j].pos = vec3(R * sin(FI) * cos(TETA), R * sin(TETA), R * cos(FI) * cos(TETA));
-	}
-	FI = DirectX::XM_PIDIV2;
-
-	for (size_t j = 0; j < GIRD_SIZE; ++j)
-	{
-		float TETA = step_teta * j;
-		res[j][index] = vertex();
-		res[j][index].Color = vec4(1, 0, 0, 1);
-		res[j][index].pos = vec3(R * sin(FI) * cos(TETA), R * sin(TETA), R * cos(FI) * cos(TETA));
-	}
-	//Попытка вычислить новую точку из трёх других на основе wang 1999.
-	float** W = new float*[3]; //Jakobian
-	float** invW = new float*[3]; //inverse
-	for (size_t i = 0; i < 3; ++i)
-	{
-		W[i] = new float[3];
-		invW[i] = new float[3];
-	}
-
-	size_t errCtr = 0;
-
-	//ppfile.open("logg");
-
-	//1
-	for (int a_index = (GIRD_SIZE - 1) / 2; a_index >= 1; --a_index)
-	{
-		for (int b_index = (GIRD_SIZE - 1) / 2; b_index >= 1; --b_index)
-		{
-			vec3* ptIJ = &res[b_index - 1][a_index - 1].pos;
-			vec3* ptIm1J = &res[b_index][a_index - 1].pos;
-			vec3* ptIJm1 = &res[b_index - 1][a_index].pos;
-			vec3* ptPrevIJ = &res[b_index][a_index].pos;
-
-
-			ptIJ->x = ptIJm1->x;
-			ptIJ->y = -ptIJm1->y ;
-			ptIJ->z = ptIm1J->z;
-
-			if (!getPt(W, invW, ptIJ, ptIm1J, ptIJm1))
-			{
-				++errCtr;
-			}
-		}
-	}
-	//2
-	for (size_t a_index = (GIRD_SIZE - 1) / 2; a_index < GIRD_SIZE - 1; ++a_index)
-	{
-
-		for (int b_index = (GIRD_SIZE - 1) / 2; b_index >= 1; --b_index)
-		{
-			vec3* ptIJ = &res[b_index - 1][a_index + 1].pos;
-			vec3* ptIm1J = &res[b_index][a_index + 1].pos;
-			vec3* ptIJm1 = &res[b_index - 1][a_index].pos;
-			vec3* ptPrevIJ = &res[b_index][a_index].pos;
-
-
-			ptIJ->x = ptIJm1->x;
-			ptIJ->y = -ptIJm1->y;
-			ptIJ->z = ptIm1J->z;
-
-			if (!getPt(W, invW, ptIJ, ptIm1J, ptIJm1))
-			{
-				++errCtr;
-			}
-		}
-	}
-	//3
-	for (int a_index = (GIRD_SIZE - 1) / 2; a_index >= 1; --a_index)
-	{
-
-		for (size_t b_index = (GIRD_SIZE - 1) / 2; b_index < GIRD_SIZE - 1; ++b_index)
-		{
-			vec3* ptIJ = &res[b_index + 1][a_index - 1].pos;
-			vec3* ptIm1J = &res[b_index][a_index - 1].pos;
-			vec3* ptIJm1 = &res[b_index + 1][a_index].pos;
-			vec3* ptPrevIJ = &res[b_index][a_index].pos;
-
-
-			ptIJ->x = ptIJm1->x;
-			ptIJ->y = -ptIJm1->y;
-			ptIJ->z = ptIm1J->z;
-
-			if (!getPt(W, invW, ptIJ, ptIm1J, ptIJm1))
-			{
-				++errCtr;
-			}
-		}
-	}
-	//4
-	for (size_t a_index = (GIRD_SIZE - 1) / 2; a_index < GIRD_SIZE - 1; ++a_index)
-	{
-
-		for (size_t b_index = (GIRD_SIZE - 1) / 2; b_index < GIRD_SIZE - 1; ++b_index)
-		{
-			vec3* ptIJ = &res[b_index + 1][a_index + 1].pos;
-			vec3* ptIm1J = &res[b_index][a_index + 1].pos;
-			vec3* ptIJm1 = &res[b_index + 1][a_index].pos;
-			vec3* ptPrevIJ = &res[b_index][a_index].pos;
-
-
-			ptIJ->x = ptIJm1->x;
-			ptIJ->y = -ptIJm1->y;
-			ptIJ->z = ptIm1J->z;
-
-			if (!getPt(W, invW, ptIJ, ptIm1J, ptIJm1))
-			{
-				++errCtr;
-			}
-		}
-	}
-	//ppfile.close();
-	std::cout << "Errors count: " << errCtr << "\n";
-	system("pause");
-
-	for (size_t i = 0; i < 3; ++i)
-	{
-		delete[] W[i];
-		delete[] invW[i];
-	}
-	delete[] W;
-	delete[] invW;
-
-	return res;
-}
-*/
-
-//Конвертирует из декартовых в параметрические. Возвращает угол фи. 
 float getFiAngle(vertex** gird, size_t i, size_t j)
 {
 	return atan(gird[i][j].pos.z / gird[i][j].pos.x);
 }
 
-//Конвертирует из декартовых в параметрические. Возвращает угол тета.
+
 float getTetaAngle(vertex** gird, size_t i, size_t j)
 {
 

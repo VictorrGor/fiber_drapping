@@ -513,295 +513,50 @@ HRESULT RenderSys::InitDevice(HWND* hWnd)
 	return hRes;
 }
 
-void RenderSys::drawDrappingPoints(vertex** points)
+
+void RenderSys::generateSphere()
 {
-	//Convert from 2-dim array to 1-dim array, for rendering
-	vertex* dummyArray = new vertex[GIRD_SIZE * GIRD_SIZE];
-
-	for (size_t i = 0; i < GIRD_SIZE; ++i)
+	int step_cnt_fi   = 100;
+	int step_cnt_teta = 100;
+	float R = 1.;
+	vertex** pts = new vertex*[step_cnt_fi];
+	for (int i = 0; i < step_cnt_fi; ++i)
 	{
-		for (size_t q = 0; q < GIRD_SIZE; q++)
-		{
-			dummyArray[q + i * GIRD_SIZE] = points[q][i];
-		}
-
+		pts[i] = new vertex[step_cnt_teta];
 	}
-	//Draw gird as points
-	Object* obj = new Object(this, pVxSh, pPxSh, GIRD_SIZE*GIRD_SIZE, dummyArray, D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
-	objects.push_back(obj);
+
+	vertex bufVx;
+	float step_fi   = XM_2PI / (step_cnt_fi - 1);
+	float step_teta = XM_PI / (step_cnt_teta - 1) / 2;
+	for (int i = 0; i < step_cnt_fi; ++i)
+	{
+		for (int j = 0; j < step_cnt_teta; ++j)
+		{
+			bufVx.pos = vec3(R * cos(i * step_fi) * sin(j * step_teta), R * sin(i * step_fi) * sin(j * step_teta), R * cos(j * step_teta));
+			pts[i][j] = bufVx;
+		}
+	}
 	
+	Object* pts_raw = new Object(this, this->pVxSh, pPxSh, step_cnt_fi * step_cnt_teta, convert2DimArrayTo1(pts, step_cnt_fi, step_cnt_teta), D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+	this->objects.push_back(pts_raw);
 
-	//Prepare data for fibers drawing
-	size_t arraySize = (pow((GIRD_SIZE - 1) / 2, 2) * 2 + (GIRD_SIZE - 1)) * 2;
-	size_t* indexAr = new size_t[arraySize];
-	memset(indexAr, 0, sizeof(size_t) * arraySize);
+	surfInfo sfi = GenInterpBSplineSurface(step_cnt_fi, step_cnt_teta, pts, 3, 3);
 
-
-	vertex* lineDummy = new vertex[arraySize];//pow((GIRD_SIZE - 1) / 2 + 1, 2)];
-	size_t actualIndex = 0;
-
-
-	for (int a_index = (GIRD_SIZE - 1) / 2; a_index >= 0; --a_index)
-	{
-		for (int b_index = (GIRD_SIZE - 1) / 2; b_index >= 0; --b_index)
-		{
-
-			if (b_index - 1 >= 0)
-			{
-				lineDummy[actualIndex] = points[b_index][a_index];
-				actualIndex++;
-				lineDummy[actualIndex] = points[b_index - 1][a_index];
-				actualIndex++;
-			}
-			if (a_index - 1 >= 0)
-			{
-				lineDummy[actualIndex] = points[b_index][a_index];
-				actualIndex++;
-				lineDummy[actualIndex] = points[b_index][a_index-1];
-				actualIndex++;
-			}
-		}
-	}
-	obj = new Object(this, pVxSh, pPxSh, actualIndex, lineDummy, D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
-	objects.push_back(obj);
-
-	//Angle analysis and visualization
-
-	vertex* triangleDummy = new vertex[(GIRD_SIZE - 1) * (GIRD_SIZE - 1) * 3];
-	actualIndex = 0;
-	size_t i, j, p, q, s, h;
-
+	drawLineOnBSplineSurface(&sfi, 0, 0, true);
+	drawLineOnBSplineSurface(&sfi, 0.25, 0, true);
+	drawLineOnBSplineSurface(&sfi, 0.00457597, 0, true);
 	
-	float angle, blue, red, green;
-	
-	float coeff = 0.7;
-	//1 octant
-	for (int a_index = (GIRD_SIZE - 1) / 2; a_index >= 1; --a_index)
-	{
-		for (int b_index = (GIRD_SIZE - 1) / 2; b_index >= 1; --b_index)
-		{
-			i = b_index;
-			j = a_index;
-			p = i - 1;
-			q = j;
-			s = i;
-			h = j - 1;
-			angle = getAngle(points, i, j, p, q, s, h);
+	drapping_part(&sfi, 0, 0, true, 0.25, 0, true);
 
-			if (angle < 90)
-				red = 1 - angle * coeff / 90;
-			else
-				red = 0;
-			if (angle > 90)
-			{
-				green = 1 - (angle - 90) * coeff / 90;
-				blue = (angle - 90) * coeff / 90;
-			}
-			else
-			{
-				green = angle * coeff / 90;
-				blue = 0;
-			}
-
-
-			triangleDummy[actualIndex] = points[b_index][a_index];
-			actualIndex++;
-			triangleDummy[actualIndex] = points[b_index][a_index - 1];
-			actualIndex++;
-			triangleDummy[actualIndex] = points[b_index - 1][a_index];
-			actualIndex++;
-
-			triangleDummy[actualIndex] = points[b_index - 1][a_index - 1];
-			actualIndex++;
-			triangleDummy[actualIndex] = points[b_index - 1][a_index];
-			actualIndex++;
-			triangleDummy[actualIndex] = points[b_index][a_index - 1];
-			actualIndex++;
-
-			for (size_t ctr = 1; ctr <= 6; ctr++)
-			{
-				triangleDummy[actualIndex - ctr].Color = vec4(red, green, blue, 1.0);
-			}
-
-
-		}
-	}
-	obj = new Object(this, pVxSh, pPxSh, actualIndex, triangleDummy, D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	objects.push_back(obj); 
-	
-	//2 octant
-	actualIndex = 0;
-	triangleDummy = new vertex[(GIRD_SIZE - 1) * (GIRD_SIZE - 1) * 3];
-	for (int a_index = (GIRD_SIZE - 1) / 2; a_index < (GIRD_SIZE - 1); ++a_index)
-	{
-		for (int b_index = (GIRD_SIZE - 1) / 2; b_index >= 1; --b_index)
-		{
-			i = b_index;
-			j = a_index;
-			p = i - 1;
-			q = j;
-			s = i;
-			h = j + 1;
-			angle = getAngle(points, i, j, p, q, s, h);
-
-			if (angle < 90)
-				red = 1 - angle * coeff / 90;
-			else
-				red = 0;
-			if (angle > 90)
-			{
-				green = 1 - (angle - 90) * coeff / 90;
-				blue = (angle - 90) * coeff / 90;
-			}
-			else
-			{
-				green = angle * coeff / 90;
-				blue = 0;
-			}
-
-
-			triangleDummy[actualIndex] = points[b_index][a_index];
-			actualIndex++;
-			triangleDummy[actualIndex] = points[b_index - 1][a_index];
-			actualIndex++;
-			triangleDummy[actualIndex] = points[b_index][a_index + 1];
-			actualIndex++;
-
-			triangleDummy[actualIndex] = points[b_index - 1][a_index + 1];
-			actualIndex++;
-			triangleDummy[actualIndex] = points[b_index][a_index + 1];
-			actualIndex++;
-			triangleDummy[actualIndex] = points[b_index - 1][a_index];
-			actualIndex++;
-
-			for (size_t ctr = 1; ctr <= 6; ctr++)
-			{
-				triangleDummy[actualIndex - ctr].Color = vec4(red, green, blue, 1.0);
-			}
-
-
-		}
-	}
-	obj = new Object(this, pVxSh, pPxSh, actualIndex, triangleDummy, D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	objects.push_back(obj);
-
-	//3 octant
-	actualIndex = 0;
-	triangleDummy = new vertex[(GIRD_SIZE - 1) * (GIRD_SIZE - 1) * 3];
-	for (int a_index = (GIRD_SIZE - 1) / 2; a_index >= 1; --a_index)
-	{
-		for (int b_index = (GIRD_SIZE - 1) / 2; b_index < (GIRD_SIZE - 1); ++b_index)
-		{
-			i = b_index;
-			j = a_index;
-			p = i + 1;
-			q = j;
-			s = i;
-			h = j - 1;
-			angle = getAngle(points, i, j, p, q, s, h);
-
-			if (angle < 90)
-				red = 1 - angle * coeff / 90;
-			else
-				red = 0;
-			if (angle > 90)
-			{
-				green = 1 - (angle - 90) * coeff / 90;
-				blue = (angle - 90) * coeff / 90;
-			}
-			else
-			{
-				green = angle * coeff / 90;
-				blue = 0;
-			}
-
-
-			triangleDummy[actualIndex] = points[b_index][a_index];
-			actualIndex++;
-			triangleDummy[actualIndex] = points[b_index + 1][a_index];
-			actualIndex++;
-			triangleDummy[actualIndex] = points[b_index][a_index - 1];
-			actualIndex++;
-
-			triangleDummy[actualIndex] = points[b_index + 1][a_index - 1];
-			actualIndex++;
-			triangleDummy[actualIndex] = points[b_index][a_index - 1];
-			actualIndex++;
-			triangleDummy[actualIndex] = points[b_index + 1][a_index];
-			actualIndex++;
-
-			for (size_t ctr = 1; ctr <= 6; ctr++)
-			{
-				triangleDummy[actualIndex - ctr].Color = vec4(red, green, blue, 1.0);
-			}
-
-
-		}
-	}
-	obj = new Object(this, pVxSh, pPxSh, actualIndex, triangleDummy, D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	objects.push_back(obj);
-
-	//4 octant
-	actualIndex = 0;
-	triangleDummy = new vertex[(GIRD_SIZE - 1) * (GIRD_SIZE - 1) * 3];
-	for (int a_index = (GIRD_SIZE - 1) / 2; a_index < (GIRD_SIZE - 1); ++a_index)
-	{
-		for (int b_index = (GIRD_SIZE - 1) / 2; b_index < (GIRD_SIZE - 1); ++b_index)
-		{
-			i = b_index;
-			j = a_index;
-			p = i + 1;
-			q = j;
-			s = i;
-			h = j + 1;
-			angle = getAngle(points, i, j, p, q, s, h);
-
-			if (angle < 90)
-				red = 1 - angle * coeff / 90;
-			else
-				red = 0;
-			if (angle > 90)
-			{
-				green = 1 - (angle - 90) * coeff / 90;
-				blue = (angle - 90) * coeff / 90;
-			}
-			else
-			{
-				green = angle * coeff / 90;
-				blue = 0;
-			}
-
-
-			triangleDummy[actualIndex] = points[b_index][a_index];
-			actualIndex++;
-			triangleDummy[actualIndex] = points[b_index][a_index + 1];
-			actualIndex++;
-			triangleDummy[actualIndex] = points[b_index + 1][a_index];
-			actualIndex++;
-
-			triangleDummy[actualIndex] = points[b_index + 1][a_index + 1];
-			actualIndex++;
-			triangleDummy[actualIndex] = points[b_index + 1][a_index];
-			actualIndex++;
-			triangleDummy[actualIndex] = points[b_index][a_index + 1];
-			actualIndex++;
-
-			for (size_t ctr = 1; ctr <= 6; ctr++)
-			{
-				triangleDummy[actualIndex - ctr].Color = vec4(red, green, blue, 1.0);
-			}
-
-
-		}
-	}
-	obj = new Object(this, pVxSh, pPxSh, actualIndex, triangleDummy, D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	objects.push_back(obj);
+	delete[] pts;
 }
 
 HRESULT RenderSys::InitObjects()
 {
 	HRESULT hRes = S_OK;
-	drawSinSurf();
+	//drawSinSurf();
+	generateSphere();
+	
 	//UINT surf_size = 3;
 	//vertex* surf = new vertex[surf_size * surf_size];
 	//float step = 100. / surf_size;
@@ -1236,134 +991,6 @@ Mouse* RenderSys::getMouse()
 	return mouse;
 }
 
-vertex** RenderSys::drawHyperboloid()
-{
-	float hyp_width = 1.;
-	float hyp_len = 1.;
-	float A = 1;
-	float B = 1;
-
-	float step_x = hyp_width / (GIRD_SIZE - 1);
-	float step_y = hyp_len / (GIRD_SIZE - 1);
-
-	vertex** res = new vertex*[GIRD_SIZE];
-
-	float x_coord = -hyp_len / 2.;
-	float z_coord = 0;
-
-	for (size_t i = 0; i < GIRD_SIZE; ++i)
-	{
-		float y_coord = -hyp_width / 2.;
-		res[i] = new vertex[GIRD_SIZE];
-		for (size_t j = 0; j < GIRD_SIZE; ++j)
-		{
-			res[i][j] = vertex();
-			z_coord = pow(x_coord, 2) * pow(A, 2) - pow(y_coord, 2) / pow(B, 2);
-			res[i][j].pos = vec3(x_coord, z_coord, y_coord);
-			y_coord += step_y;
-		}
-		x_coord += step_x;
-	}
-	//Object* obj = new Object(this, pVxSh, pPxSh, GIRD_SIZE * GIRD_SIZE, res, D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
-	//objects.push_back(obj);
-
-	return res;
-}
-
-vertex** RenderSys::drawRocket()
-{
-	const float R_sphere = 0.0315; //meters
-	const float alf_cone = 80.5; //degree
-	const float LA_height = 2.52; //meters
-	const float jamma = atan(R_sphere / (LA_height - R_sphere));
-
-	float scale_coef = 10;
-
-	//Ellipsoid constants
-	const float a = 1.;
-	const float b = 1.;
-	const float c = 1.;
-
-	//float step_fi = DirectX::XM_PI / ((GIRD_SIZE - 1)); 
-	float fi = 0;
-	float teta = 0;
-	//float step_teta = DirectX::XM_PI / 2 / (GIRD_SIZE / 2 - 1);
-	float x=0, y = 0, z = 0;
-
-	/*
-	vertex** Q = new vertex*[GIRD_SIZE];
-	for (size_t i = 0; i < GIRD_SIZE; ++i) Q[i] = new vertex[GIRD_SIZE];
-
-	//bottom sphere
-	for (size_t i = 0; i < GIRD_SIZE / 2; ++i)
-	{
-		for (size_t j = 0; j < GIRD_SIZE; ++j)
-		{
-			x = R_sphere * sin(teta) * cos(fi);
-			z = -R_sphere * cos(teta);
-			y = R_sphere * sin(teta) * sin(fi);
-
-			Q[i][j] = vertex();
-			Q[i][j].pos = vec3(x * scale_coef, y * scale_coef, z * scale_coef);
-			fi += step_fi;
-		}
-		fi = 0;
-		teta += step_teta;
-	}
-	//top spherical cone
-	teta = alf_cone / 2;
-
-	teta = 0;
-	fi = 0;
-	for (size_t i = GIRD_SIZE / 2; i < GIRD_SIZE; ++i)
-	{
-		for (size_t j = 0; j < GIRD_SIZE; ++j)
-		{
-			x = R_sphere * sin(teta) * cos(fi);
-			z = R_sphere * cos(teta) * 0.5;
-			y = R_sphere * sin(teta) * sin(fi);
-
-			Q[i][j] = vertex();
-			Q[i][j].pos = vec3(x * scale_coef, y * scale_coef, z * scale_coef);
-			fi += step_fi;
-		}
-		fi = 0;
-		teta += step_teta;
-	}*/
-	UINT n = 10;
-	UINT m = 10;
-	vertex** Q = new vertex * [n];
-	for (UINT i = 0; i < n; ++i) Q[i] = new vertex[m];
-
-	float step_fi = XM_PI * 2 / (n - 1);
-	float step_teta = XM_PIDIV2 / (m - 1);
-	float R = 1.f;
-
-	for (UINT i = 0; i < n / 2; ++i)
-		for (UINT j = 0; j < m; ++j)
-			Q[i][j].pos = vec3(R * cos(i * step_fi) * cos(step_teta * j), R * sin(step_teta * j), R * cos(j * step_teta) * sin(step_fi * i));
-	for (UINT i = n / 2; i < n; ++i)
-		for (UINT j = 0; j < m; ++j)
-			Q[i][j].pos = vec3(R * cos(i * step_fi) * cos(step_teta * j), R * sin(step_teta * j), R * cos(j * step_teta) * sin(step_fi * i) * 0.5f);
-	
-	surfInfo sfI = GenInterpBSplineSurface(n, m, Q, 3, 3);
-	Object* obj = new Object(this, pVxSh, pPxSh, n * m, convert2DimArrayTo1(Q, n, m), D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
-	objects.push_back(obj);
-	drawLineOnBSplineSurface(&sfI, 0, 0, true);
-	drawLineOnBSplineSurface(&sfI, 0.25, 0, true);
-	drawLineOnBSplineSurface(&sfI, 0.5, 0., true);
-	drawLineOnBSplineSurface(&sfI, 0.75, 0., true);
-	drapping_part(&sfI, 0., 0, true, 0.25, 0, true);
-	drapping_part(&sfI, 0.25, 0, true, 0.5, 0, true);
-	drapping_part(&sfI, 0.5, 0, true, 0.75, 0, true);
-	drapping_part(&sfI, 0.75, 0, true, 1, 0, true);
-
-	//drapping_part(&sfI, 0.25, 0, true, 0.5, 0, true);
-	//drawLineOnBSplineSurface(&sfI, 1, 0, true);
-
-	return nullptr;
-}
-
 vertex** RenderSys::drawSinSurf()
 {
 	const float R_sphere = 0.0315f; //meters
@@ -1384,46 +1011,6 @@ vertex** RenderSys::drawSinSurf()
 	//float step_teta = DirectX::XM_PI / 2 / (GIRD_SIZE / 2 - 1);
 	float x = 0, y = 0, z = 0;
 
-	/*
-	vertex** Q = new vertex*[GIRD_SIZE];
-	for (size_t i = 0; i < GIRD_SIZE; ++i) Q[i] = new vertex[GIRD_SIZE];
-
-	//bottom sphere
-	for (size_t i = 0; i < GIRD_SIZE / 2; ++i)
-	{
-		for (size_t j = 0; j < GIRD_SIZE; ++j)
-		{
-			x = R_sphere * sin(teta) * cos(fi);
-			z = -R_sphere * cos(teta);
-			y = R_sphere * sin(teta) * sin(fi);
-
-			Q[i][j] = vertex();
-			Q[i][j].pos = vec3(x * scale_coef, y * scale_coef, z * scale_coef);
-			fi += step_fi;
-		}
-		fi = 0;
-		teta += step_teta;
-	}
-	//top spherical cone
-	teta = alf_cone / 2;
-
-	teta = 0;
-	fi = 0;
-	for (size_t i = GIRD_SIZE / 2; i < GIRD_SIZE; ++i)
-	{
-		for (size_t j = 0; j < GIRD_SIZE; ++j)
-		{
-			x = R_sphere * sin(teta) * cos(fi);
-			z = R_sphere * cos(teta) * 0.5;
-			y = R_sphere * sin(teta) * sin(fi);
-
-			Q[i][j] = vertex();
-			Q[i][j].pos = vec3(x * scale_coef, y * scale_coef, z * scale_coef);
-			fi += step_fi;
-		}
-		fi = 0;
-		teta += step_teta;
-	}*/
 	UINT n = 10;
 	UINT m = 10;
 	vertex** Q = new vertex * [n];
@@ -1437,7 +1024,7 @@ vertex** RenderSys::drawSinSurf()
 	for (UINT i = 0; i < n; ++i)
 		for (UINT j = 0; j < m; ++j)
 		{
-			Q[i][j].pos = vec3(i * step_fi, sin(j) * sin(i) * 0.85, (j * step_teta));
+			Q[i][j].pos = vec3(i * step_fi, sin(j) * sin(i) * 0.5, (j * step_teta));
 			//Q[i][j].pos = vec3(i * step_fi, 0, (j * step_teta));
 			Q[i][j].Color = vec4((float)(rand()% 101) / 100, (float)(rand() % 101) / 100, (float)(rand() % 101) / 100,1);
 		}
