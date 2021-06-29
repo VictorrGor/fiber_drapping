@@ -202,6 +202,7 @@ public:
 	friend Object;
 
 	RenderSys();
+	~RenderSys();
 	// Render the frame
 	void Render();
 	// Clean up the objects we've created
@@ -342,12 +343,11 @@ public:
 		//objects.push_back(obj1);
 
 
-
+		vertex* triangle = new vertex[3];
 		for (UINT i = 0; i < size - 1; ++i)
 		{
 			for (UINT j = 0; j < size - 1; ++j)
 			{
-				vertex* triangle = new vertex[3];
 				if ((P[i][j].u < 0) || (P[i][j + 1].u < 0) || (P[i + 1][j].u < 0))
 					continue;
 				float angle = getAngle(Q, i, j, i + 1, j, i, j + 1);
@@ -371,6 +371,9 @@ public:
 				triangle[0] = Q[i][j];
 				triangle[1] = Q[i][j + 1];
 				triangle[2] = Q[i + 1][j];
+				triangle[0].normal = calculateTriangleNormal(Q[i][j], Q[i][j + 1], Q[i + 1][j]);
+				triangle[1].normal = triangle[0].normal;
+				triangle[2].normal = triangle[0].normal;
 
 				triangle[0].Color = vec4(red, green, blue, 1);
 				triangle[1].Color = vec4(red, green, blue, 1);
@@ -407,6 +410,9 @@ public:
 				triangle[0] = Q[i+1][j];
 				triangle[1] = Q[i][j + 1];
 				triangle[2] = Q[i + 1][j + 1];
+				triangle[0].normal = calculateTriangleNormal(Q[i+1][j], Q[i][j + 1], Q[i + 1][j + 1]);
+				triangle[1].normal = triangle[0].normal;
+				triangle[2].normal = triangle[0].normal;
 
 				triangle[0].Color = vec4(red, green, blue, 1);
 				triangle[1].Color = vec4(red, green, blue, 1);

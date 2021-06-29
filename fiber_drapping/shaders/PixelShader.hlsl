@@ -80,5 +80,31 @@ float4 main(VS_INPUT input) : SV_Target
 		float3 res = diff + ambient + spec;
 		return  float4(res, 1.0f);
 	}
-	return input.Color;
+
+//@todo Add various pixel shaders for lighting and for vertex color rendering
+/*
+	float4 staticAmbient = float4(0.2, 0.2, 0.2, 1);
+	float4 staticSpecular = float4(1, 1, 1, 1);
+	float3 lightVec = gPointLight.Position - input.WorldPos.xyz;
+	float3 toEyeW = normalize(gEyePosW - input.WorldPos.xyz);
+	float lightVecDistance = length(lightVec);
+	lightVec /= lightVecDistance;
+
+	input.Normal = normalize(input.Normal);
+	float4 ambient = staticAmbient * gPointLight.Ambient;
+	float4 spec = float4(0, 0, 0, 0);
+	float4 diff = float4(0, 0, 0, 0);
+
+	if (lightVecDistance <= gPointLight.Range)
+	{
+		diff = (max(dot(input.Normal, lightVec), 0)) * gPointLight.Diffuse * input.Color;
+
+		float3 v = reflect(-lightVec, input.Normal);
+		float specFactor = pow(max(dot(v, toEyeW), 0.0f), 32);
+		spec = specFactor * staticSpecular * gPointLight.Specular;
+	}
+
+	float3 res = diff + ambient + spec;
+	return  float4(res, 1.0f);*/
+	return  input.Color;
 }

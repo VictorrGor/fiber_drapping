@@ -194,6 +194,18 @@ RenderSys::RenderSys()
 	ID3D11RenderTargetView* g_pRenderTargetView = NULL;
 }
 
+RenderSys::~RenderSys()
+{
+	for (std::vector<Object*>::iterator it = objects.begin(); it < objects.end(); ++it)
+	{
+		delete (*it);
+	}
+	for (std::vector<PointLight*>::iterator it = pointLightObjects.begin(); it < pointLightObjects.end(); ++it)
+	{
+		delete (*it);
+	}
+}
+
 void RenderSys::Render()
 {
 	UINT stride = sizeof(vertex);
@@ -688,17 +700,17 @@ HRESULT RenderSys::InitObjects()
 	HRESULT hRes = S_OK;
 	//Generate Light points
 	PointLight* pl = new PointLight();
-	pl->Position = vec3(-0.5, 1, 0);
-	pl->Range = 2.;
+	pl->Position = vec3(0.0, 3, 0);
+	pl->Range = 20.;
 	pl->Ambient = vec4(0.5, 0.5, 0.5, 1);
 	pl->Diffuse = vec4(1., 1., 1., 1);
 	pl->Specular = vec4(1, 1., 1, 1);
 	this->pointLightObjects.push_back(pl);
 
 
-	//drawSinSurf();
+	drawSinSurf();
 	//generateSphere();
-	lighting_test();
+	//lighting_test();
 	
 	//UINT surf_size = 3;
 	//vertex* surf = new vertex[surf_size * surf_size];
@@ -1167,7 +1179,7 @@ vertex** RenderSys::drawSinSurf()
 	for (UINT i = 0; i < n; ++i)
 		for (UINT j = 0; j < m; ++j)
 		{
-			Q[i][j].pos = vec3(i * step_fi, sin(j) * sin(i) * 0.5, (j * step_teta));
+			Q[i][j].pos = vec3(i * step_fi, sin(j) * sin(i) * 0.8, (j * step_teta));
 			//Q[i][j].pos = vec3(i * step_fi, 0, (j * step_teta));
 			Q[i][j].Color = vec4((float)(rand()% 101) / 100, (float)(rand() % 101) / 100, (float)(rand() % 101) / 100,1);
 		}
