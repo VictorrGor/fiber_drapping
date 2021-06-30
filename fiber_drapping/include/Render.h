@@ -107,6 +107,7 @@ class RenderSys
 	ID3D11Buffer*			g_pConstantBuffer;
 	ID3D11Buffer*			g_pPS_CB;
 	ID3D11Buffer*			pPS_CB_per_obj;
+	ID3D11DepthStencilView* DepthBuffer;
 
 	DirectX::XMMATRIX		g_World;
 	DirectX::XMMATRIX		g_View;

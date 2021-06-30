@@ -298,6 +298,7 @@ void RenderSys::Render()
 	}
 
 	g_pSwapChain->Present(1, 0);
+	g_pImmediateContext->ClearDepthStencilView(DepthBuffer, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 }
 
 void RenderSys::CleanupDevice()
@@ -394,7 +395,19 @@ HRESULT RenderSys::InitConstantBuffers(UINT width, UINT height)
 	g_World = DirectX::XMMatrixIdentity();
 	// Initialize the projection matrix
 	g_Projection = DirectX::XMMatrixPerspectiveFovLH(DirectX::XM_PIDIV2, width / (FLOAT)height, 0.01f, 100.0f);
-
+	//float nearClip = 0.1f;
+	//float farClip = 100.f;
+	//float A_param = farClip / (farClip - nearClip);
+	//float B_param = farClip * nearClip / (nearClip - farClip);
+	//float fi = XM_PIDIV2 / 2;
+	//float sinFi = sin(fi);
+	//float cosFi = cos(fi);
+	//g_Projection.r[0].m128_f32[0] = cosFi / sinFi * nearClip * 2;
+	//g_Projection.r[1].m128_f32[1] = cosFi / sinFi * nearClip * 2 * width / (FLOAT)height;
+	//g_Projection.r[2].m128_f32[2] = A_param;//(farClip + nearClip) / (farClip - nearClip);//A_param;
+	//g_Projection.r[3].m128_f32[2] = B_param;
+	//g_Projection.r[2].m128_f32[3] = 1;//- 2 * (farClip * nearClip) / (farClip - nearClip);
+	//g_Projection.r[3].m128_f32[3] = 0;
 	//INIT PS_CB
 
 	D3D11_BUFFER_DESC bd1;
@@ -503,7 +516,34 @@ HRESULT RenderSys::InitDevice(HWND* hWnd)
 	if (FAILED(hRes))
 		return hRes;
 
-	g_pImmediateContext->OMSetRenderTargets(1, &g_pRenderTargetView, NULL);
+	D3D11_TEXTURE2D_DESC depthTextureDesc;
+	ZeroMemory(&depthTextureDesc, sizeof(depthTextureDesc));
+	depthTextureDesc.Width = width;
+	depthTextureDesc.Height = height;
+	depthTextureDesc.MipLevels = 1;
+	depthTextureDesc.ArraySize = 1;
+	depthTextureDesc.SampleDesc.Count = 1;
+	depthTextureDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	depthTextureDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+
+	ID3D11Texture2D* DepthStencilTexture;
+	hRes = g_pd3dDevice->CreateTexture2D(&depthTextureDesc, NULL, &DepthStencilTexture);
+
+	if (FAILED(hRes))
+		return hRes;
+
+	D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc;
+	ZeroMemory(&dsvDesc, sizeof(dsvDesc));
+	dsvDesc.Format = depthTextureDesc.Format;
+	dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DMS;
+
+	hRes = g_pd3dDevice->CreateDepthStencilView(DepthStencilTexture, &dsvDesc, &DepthBuffer);
+	DepthStencilTexture->Release();
+
+	if (FAILED(hRes))
+		return hRes;
+
+	g_pImmediateContext->OMSetRenderTargets(1, &g_pRenderTargetView, DepthBuffer);
 
 	// Setup the viewport
 	D3D11_VIEWPORT vp;
