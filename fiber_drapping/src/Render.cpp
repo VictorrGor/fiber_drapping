@@ -38,7 +38,7 @@ void Log(const vertex* _arr, size_t _size)
 Object::Object(RenderSys * _rs, ID3D11VertexShader * _pVxSh, ID3D11PixelShader * _pPxSh, 
 	UINT _vertexCount, vertex * vecArr, D3D_PRIMITIVE_TOPOLOGY _toplology,
 				ID3D11Buffer * _pVxBuf) : pVertexBuf(_pVxBuf), vecCount(_vertexCount),
-				pVxSh(_pVxSh), pPxSh(_pPxSh), toplology(_toplology), pIndexBuf(nullptr), indexCount(0), rs(_rs)
+				pVxSh(_pVxSh), pPxSh(_pPxSh), toplology(_toplology), pIndexBuf(nullptr), indexCount(0)
 {
 	if (!_pVxBuf)
 	{
@@ -63,7 +63,7 @@ Object::Object(RenderSys * _rs, ID3D11VertexShader * _pVxSh, ID3D11PixelShader *
 		bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 		bd.CPUAccessFlags = 0;
 
-		HRESULT hRes = rs->g_pd3dDevice->CreateBuffer(&bd, NULL, &pPS_CB);
+		HRESULT hRes = _rs->g_pd3dDevice->CreateBuffer(&bd, NULL, &pPS_CB);
 
 		if (FAILED(hRes))
 		{
@@ -83,7 +83,7 @@ Object::Object(RenderSys * _rs, ID3D11VertexShader * _pVxSh, ID3D11PixelShader *
 Object::Object(RenderSys* _rs, ID3D11VertexShader* _pVxSh, ID3D11PixelShader* _pPxSh, 
 	UINT _vertexCount, vertex* vecArr, D3D_PRIMITIVE_TOPOLOGY _toplology,
 	UINT _indexCount, UINT* indexArray, ID3D11Buffer* _pVxBuf, ID3D11Buffer* _pIndexBuf) : pVertexBuf(_pVxBuf), vecCount(_vertexCount),
-	pVxSh(_pVxSh), pPxSh(_pPxSh), toplology(_toplology), pIndexBuf(nullptr), indexCount(_indexCount), rs(_rs)
+	pVxSh(_pVxSh), pPxSh(_pPxSh), toplology(_toplology), pIndexBuf(nullptr), indexCount(_indexCount)
 {
 	if (!_pVxBuf)
 	{
@@ -109,7 +109,7 @@ Object::Object(RenderSys* _rs, ID3D11VertexShader* _pVxSh, ID3D11PixelShader* _p
 		bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 		bd.CPUAccessFlags = 0;
 
-		HRESULT hRes = rs->g_pd3dDevice->CreateBuffer(&bd, NULL, &pPS_CB);
+		HRESULT hRes = _rs->g_pd3dDevice->CreateBuffer(&bd, NULL, &pPS_CB);
 
 		if (FAILED(hRes))
 		{
@@ -208,6 +208,8 @@ RenderSys::~RenderSys()
 
 void RenderSys::Render()
 {
+	//Draw objects
+	g_pImmediateContext->IASetInputLayout(this->pVtxLayout);
 	UINT stride = sizeof(vertex);
 	UINT offset = 0;
 
@@ -279,7 +281,7 @@ void RenderSys::Render()
 
 		g_pImmediateContext->IASetPrimitiveTopology(pObj->toplology);
 		g_pImmediateContext->IASetVertexBuffers(0, 1, &pObj->pVertexBuf, &stride, &offset);
-		//g_pImmediateContext->VSSetShader(pObj->pVxSh, NULL, 0);
+		g_pImmediateContext->VSSetShader(pObj->pVxSh, NULL, 0);
 
 		g_pImmediateContext->PSSetShader(pObj->pPxSh, NULL, 0);
 		g_pImmediateContext->UpdateSubresource(pPS_CB_per_obj, 0, NULL, pObj->pCB, 0, 0);
@@ -295,6 +297,30 @@ void RenderSys::Render()
 		{
 			g_pImmediateContext->Draw(pObj->vecCount, 0);
 		}
+	}
+
+	//Draw Interface
+	ID3D11InputLayout** pTest = nullptr;
+	g_pImmediateContext->IASetInputLayout(this->pInterface->pInterfaceVtxLayout);
+	g_pImmediateContext->VSSetShader(this->pInterface->pInterfaceVxSh, NULL, 0);
+	g_pImmediateContext->PSSetShader(this->pInterface->pInterfacePxSh, NULL, 0);
+	g_pImmediateContext->PSSetShaderResources(0, 1, &this->pInterface->pFontRV);
+
+	stride = sizeof(TexturedVertex);
+	for (std::vector<TexturedObject*>::iterator it = this->pInterface->objects.begin(); it < this->pInterface->objects.end(); ++it)
+	{
+		offset = 0;
+		g_pImmediateContext->IASetPrimitiveTopology((*it)->toplology);
+		g_pImmediateContext->IASetVertexBuffers(0, 1, &(*it)->pVertexBuf, &stride, &offset);
+
+		if ((*it)->pIndexBuf)
+		{
+			g_pImmediateContext->IASetIndexBuffer((*it)->pIndexBuf, DXGI_FORMAT_R32_UINT, offset);
+			g_pImmediateContext->DrawIndexed((*it)->indexCount, 0, 0);
+		}
+		else
+			g_pImmediateContext->Draw((*it)->vecCount, 0);
+
 	}
 
 	g_pSwapChain->Present(1, 0);
@@ -555,6 +581,9 @@ HRESULT RenderSys::InitDevice(HWND* hWnd)
 	vp.TopLeftY = 0;
 	g_pImmediateContext->RSSetViewports(1, &vp);
 
+	//Init Interface
+	this->pInterface = new Interface(this);
+	this->pInterface->initCharMap("resources/texture/ASCI_desc.binary");
 
 	hRes = InitShaders();
 	if (FAILED(hRes))
@@ -747,10 +776,11 @@ HRESULT RenderSys::InitObjects()
 	pl->Specular = vec4(1, 1., 1, 1);
 	this->pointLightObjects.push_back(pl);
 
+	this->pInterface->makeTextObject("Hello!", 0, 0, 100, 100, this);
 
-	drawSinSurf();
+	//drawSinSurf();
 	//generateSphere();
-	//lighting_test();
+	lighting_test();
 	
 	//UINT surf_size = 3;
 	//vertex* surf = new vertex[surf_size * surf_size];
@@ -1316,4 +1346,199 @@ void Mouse::updMousePos(POINT mPos)
 		savedMPos = mPos;
 	}
 	mousePos = mPos;
+}
+
+TexturedObject::TexturedObject(RenderSys* _rs, ID3D11VertexShader* _pVxSh, ID3D11PixelShader* _pPxSh, UINT _vertexCount,
+	TexturedVertex* vecArr, D3D_PRIMITIVE_TOPOLOGY _toplology, ID3D11Buffer* _pVxBuf) : pVertexBuf(_pVxBuf), vecCount(_vertexCount),
+	pVxSh(_pVxSh), pPxSh(_pPxSh), toplology(_toplology)
+{
+	if (!_pVxBuf)
+	{
+
+		D3D11_BUFFER_DESC bufferDesc;
+		bufferDesc.Usage = D3D11_USAGE_DEFAULT;
+		bufferDesc.ByteWidth = sizeof(TexturedVertex) * _vertexCount;
+		bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+		bufferDesc.CPUAccessFlags = 0;
+		bufferDesc.MiscFlags = 0;
+
+		D3D11_SUBRESOURCE_DATA InitData;
+		ZeroMemory(&InitData, sizeof(InitData));
+		InitData.pSysMem = vecArr;
+		_rs->g_pd3dDevice->CreateBuffer(&bufferDesc, &InitData, &pVertexBuf);
+	}
+}
+
+TexturedObject::TexturedObject(RenderSys* _rs, ID3D11VertexShader* _pVxSh, ID3D11PixelShader* _pPxSh, UINT _vertexCount,
+	TexturedVertex* vecArr, D3D_PRIMITIVE_TOPOLOGY _toplology, UINT _indexCount, UINT* _indexArray, ID3D11Buffer* _pVxBuf, ID3D11Buffer* _pIndexBuf) : pVertexBuf(_pVxBuf), vecCount(_vertexCount),
+	pVxSh(_pVxSh), pPxSh(_pPxSh), toplology(_toplology), indexCount(_indexCount)
+{
+	if (!_pVxBuf)
+	{
+
+		D3D11_BUFFER_DESC bufferDesc;
+		bufferDesc.Usage = D3D11_USAGE_DEFAULT;
+		bufferDesc.ByteWidth = sizeof(TexturedVertex) * _vertexCount;
+		bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+		bufferDesc.CPUAccessFlags = 0;
+		bufferDesc.MiscFlags = 0;
+
+		D3D11_SUBRESOURCE_DATA InitData;
+		ZeroMemory(&InitData, sizeof(InitData));
+		InitData.pSysMem = vecArr;
+		_rs->g_pd3dDevice->CreateBuffer(&bufferDesc, &InitData, &pVertexBuf);
+
+
+		if (!pIndexBuf && _indexArray && indexCount)
+		{
+			D3D11_BUFFER_DESC bd_indexes;
+			ZeroMemory(&bd_indexes, sizeof(bd_indexes));
+			bd_indexes.Usage = D3D11_USAGE_DEFAULT;
+			bd_indexes.ByteWidth = sizeof(UINT) * indexCount;
+			bd_indexes.BindFlags = D3D11_BIND_INDEX_BUFFER;
+			bd_indexes.CPUAccessFlags = 0;
+
+			D3D11_SUBRESOURCE_DATA InitData;
+			ZeroMemory(&InitData, sizeof(InitData));
+			InitData.pSysMem = _indexArray;
+			_rs->g_pd3dDevice->CreateBuffer(&bd_indexes, &InitData, &pIndexBuf);
+			HRESULT hRes = _rs->g_pd3dDevice->CreateBuffer(&bd_indexes, &InitData, &pIndexBuf);
+			
+			if (FAILED(hRes))
+			{
+#ifdef DEBUG_CONSOLE
+				std::cout << "[Error] Cann't create Index Buffer for Object!" << std::endl;
+#endif
+				pIndexBuf = nullptr;
+			}
+
+		}
+	}
+}
+
+Interface::Interface(RenderSys* _rs)
+{
+	HRESULT hRes = S_OK;
+
+	///////////////////
+	//Compiling shaders
+	///////////////////
+
+	ID3DBlob* pBlobVertex = NULL;
+	ID3DBlob* pPSerr = NULL;
+	UINT compile_flag = D3DCOMPILE_DEBUG || D3DCOMPILE_SKIP_OPTIMIZATION;
+
+
+	hRes = D3DCompileFromFile(L"shaders/InterfaceVertexShader.hlsl", NULL, D3D_COMPILE_STANDARD_FILE_INCLUDE, "main", "vs_4_0", compile_flag, NULL, &pBlobVertex, &pPSerr);
+	if (FAILED(hRes))
+	{
+		if (pPSerr) pPSerr->Release();
+		MessageBox(NULL,
+			L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
+		throw "Cann't init Interface!";
+	}
+
+	hRes = _rs->g_pd3dDevice->CreateVertexShader(pBlobVertex->GetBufferPointer(), pBlobVertex->GetBufferSize(), NULL, &pInterfaceVxSh);
+
+
+	// Define the input layout
+	D3D11_INPUT_ELEMENT_DESC layout[] =
+	{
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT , D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT , D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT , D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT , D3D11_INPUT_PER_VERTEX_DATA, 0 }
+
+	};
+	UINT numElements = ARRAYSIZE(layout);
+
+	// Create the input layout
+	hRes = _rs->g_pd3dDevice->CreateInputLayout(layout, numElements, pBlobVertex->GetBufferPointer(),
+		pBlobVertex->GetBufferSize(), &pInterfaceVtxLayout);
+	pBlobVertex->Release();
+	if (FAILED(hRes))
+		throw "Cann't init Interface!";
+
+	// Set the input layout
+	_rs->g_pImmediateContext->IASetInputLayout(pInterfaceVtxLayout);
+
+	// Compile the pixel shader
+	ID3DBlob* pPSBlob = NULL;
+	hRes = D3DCompileFromFile(L"shaders/InterfacePixelShader.hlsl", NULL, D3D_COMPILE_STANDARD_FILE_INCLUDE, "main", "ps_4_0", NULL, NULL, &pPSBlob, &pPSerr);
+	if (FAILED(hRes))
+	{
+		MessageBox(NULL,
+			L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
+		throw "Cann't init Interface!";
+	}
+
+	// Create the pixel shader
+	hRes = _rs->g_pd3dDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), NULL, &pInterfacePxSh);
+	pPSBlob->Release();
+	if (FAILED(hRes))
+		throw "Cann't init Interface!";
+
+	if (pPSerr) pPSerr->Release();
+
+	//////////////////////////
+	//Init Texture Resources//
+	//////////////////////////
+	hRes = CreateDDSTextureFromFile(_rs->g_pd3dDevice, L"resources/texture/font.dds", (ID3D11Resource**)&pFont, &pFontRV);
+
+	if (FAILED(hRes))
+	{
+		MessageBox(NULL,
+			L"Some problems with Creating texture.", L"Error", MB_OK);
+		throw "Failed to create texture! Cann't init Interface!";
+	}
+}
+
+TexturedObject* Interface::makeWord(const char* _text, float x_pos, float y_pos, float _width, float _height, RenderSys* _rs) {
+	UINT size = strlen(_text);
+	TexturedVertex* vec = new TexturedVertex [size * 4] ;
+	float x_act = x_pos;
+	float screenWidth = _rs->width;
+	float screenHeight = _rs->height;
+	TextTextureInfo* tti = nullptr;
+	UINT counter = 0;
+	float x_step = 0;
+	float y_step = _height / screenHeight;
+
+	UINT* indices = new UINT[size * 6];
+	UINT indices_ctr = 0;
+	for (int i = 0; i < size; ++i)
+	{
+		tti = chars[_text[i]];
+
+		x_step = tti->pixelWidth / screenWidth * 10;
+
+		vec[counter].vx.pos = vec3(x_act, y_pos, 0);
+		vec[counter].tcoord.x = tti->leftU;
+		vec[counter].tcoord.y = 0;
+
+		vec[counter + 1].vx.pos = vec3(x_act + x_step, y_pos, 0);
+		vec[counter + 1].tcoord.x = tti->rightU;
+		vec[counter + 1].tcoord.y = 0;
+
+		vec[counter + 2].vx.pos = vec3(x_act, y_pos - y_step, 0);
+		vec[counter + 2].tcoord.x = tti->leftU;
+		vec[counter + 2].tcoord.y = 1;
+
+		vec[counter + 3].vx.pos = vec3(x_act + x_step, y_pos - y_step, 0);
+		vec[counter + 3].tcoord.x = tti->rightU;
+		vec[counter + 3].tcoord.y = 1;
+
+		indices[indices_ctr] = counter;
+		indices[indices_ctr + 1] = counter + 1;
+		indices[indices_ctr + 2] = counter + 2;
+		indices[indices_ctr + 3] = counter + 1;
+		indices[indices_ctr + 4] = counter + 3;
+		indices[indices_ctr + 5] = counter + 2;
+
+		indices_ctr += 6;
+		x_act += x_step;
+		counter += 4;
+	}
+	TexturedObject* res = new TexturedObject(_rs, this->pInterfaceVxSh, this->pInterfacePxSh, size * 4, (vec), D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST , indices_ctr, indices);
+	return res;
 }

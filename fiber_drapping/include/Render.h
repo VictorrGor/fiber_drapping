@@ -11,7 +11,8 @@
 #include "Bspline.h"
 #include "DataStructures.h"
 #include "Drapping.h"
-
+#include "DDSTextureLoader.h"
+#include <map>
 
 
 extern std::ofstream file;
@@ -37,6 +38,7 @@ void Log(const vertex* _arr, size_t _size);
 
 //Left-handed^ (xOz surface) and Y-up
 
+
 class Object
 {
 	ID3D11Buffer*			pVertexBuf;
@@ -51,8 +53,6 @@ class Object
 	PixelShaderCB*			pCB;
 
 	ID3D11Buffer*			pPS_CB;///depricated
-
-	RenderSys* rs;
 public:
 	friend RenderSys;
 	Object(RenderSys* _rs, ID3D11VertexShader* _pVxSh, ID3D11PixelShader* _pPxSh, UINT _vertexCount, vertex* vecArr, D3D_PRIMITIVE_TOPOLOGY _toplology,
@@ -68,6 +68,121 @@ public:
 	};
 };
 
+
+struct TexturedVertex
+{
+	vertex vx;
+	XMFLOAT2 tcoord;
+};
+
+class TexturedObject
+{
+	ID3D11Buffer* pVertexBuf;
+	ID3D11Buffer* pIndexBuf;
+	UINT vecCount;
+	UINT indexCount;
+	D3D_PRIMITIVE_TOPOLOGY	toplology;
+
+	ID3D11Texture2D* texture;
+	ID3D11SamplerState* sampleState;
+
+	ID3D11VertexShader* pVxSh;
+	ID3D11PixelShader* pPxSh;
+
+	///@todo Depricated. Change this old code to new one, which will use constant buffers
+	struct PixelShader_textured
+	{
+		ID3D11Texture2D* texture;
+		ID3D11SamplerState* sampleState;
+	};
+	PixelShader_textured* pCB;
+	ID3D11Buffer* pPSBuff;
+public:
+
+	friend RenderSys;
+	TexturedObject(RenderSys* _rs, ID3D11VertexShader* _pVxSh, ID3D11PixelShader* _pPxSh, UINT _vertexCount, TexturedVertex* vecArr, D3D_PRIMITIVE_TOPOLOGY _toplology,
+		ID3D11Buffer* _pVxBuf = nullptr);
+	TexturedObject(RenderSys* _rs, ID3D11VertexShader* _pVxSh, ID3D11PixelShader* _pPxSh, UINT _vertexCount, TexturedVertex* vecArr, D3D_PRIMITIVE_TOPOLOGY _toplology,
+		UINT _indexCount, UINT* indexArray, ID3D11Buffer* _pVxBuf = nullptr, ID3D11Buffer* _pIndexBuf = nullptr);
+
+};
+
+
+class Interface
+{
+	std::map<char, TextTextureInfo*> chars;
+	TextTextureInfo* textureInfoBuf;
+	//File format:
+	//Binary file. First element has UINT type and stores count of characters.
+	//Further written character's structers.
+	HRESULT initCharMap(const char* filename)//@todo needs testing
+	{
+		FILE* f;
+		f = fopen(filename, "rb");
+		if (!f) return E_FAIL;
+		
+
+		UINT charactersNum = 0;
+		fseek(f, -((int)sizeof(UINT)), SEEK_END);
+		fread(&charactersNum, sizeof(UINT), 1, f);
+		fseek(f, 0, SEEK_SET);
+
+		TextTextureInfo* buf = textureInfoBuf;
+		buf = new TextTextureInfo[charactersNum];
+		fread(&buf[0], sizeof(TextTextureInfo), charactersNum, f);
+		auto a = buf[0];
+		for (UINT i = 0; i < charactersNum; ++i)
+		{
+			chars.insert(std::pair<char, TextTextureInfo*>(buf[i].ch, &buf[i]));
+			std::cout << buf[i].ch << ": LeftU: " << chars[buf[i].ch]->leftU << "; RightU: " << chars[buf[i].ch]->rightU << "; Width: " << chars[buf[i].ch]->pixelWidth << "\n";
+		}
+		fclose(f);
+		return S_OK;
+	};
+	std::vector<TexturedObject*> objects;
+	
+	ID3D11VertexShader* pInterfaceVxSh;
+	ID3D11PixelShader* pInterfacePxSh;
+	ID3D11InputLayout* pInterfaceVtxLayout;
+	
+	ID3D11Texture2D* pFont;
+	ID3D11ShaderResourceView* pFontRV;
+public:
+	friend RenderSys;
+
+	Interface(RenderSys* _rs);
+	~Interface()
+	{
+		if (pInterfaceVxSh)
+		{
+			pInterfaceVxSh->Release();
+		}
+		if (pInterfacePxSh)
+		{
+			pInterfacePxSh->Release();
+		}
+		if (pInterfaceVtxLayout)
+		{
+			pInterfaceVtxLayout->Release();
+		}
+		if (pFont)
+		{
+			pFont->Release();
+		}
+		if (pFontRV)
+		{
+			pFontRV->Release();
+		}
+	}
+	void makeTextObject(const char* _text, float x_pos, float y_pos, float _width, float _height, RenderSys* _rs)
+	{
+		objects.push_back(makeWord(_text, x_pos, y_pos, _width, _height, _rs));
+	}
+
+	//@todo Height and width are need to be used
+	TexturedObject* makeWord(const char* _text, float x_pos, float y_pos, float _width, float _height, RenderSys* _rs);
+	
+};
 
 
 class Mouse
@@ -199,8 +314,15 @@ class RenderSys
 	MemoryPool mp;
 
 	Mouse* mouse;
+
+
+	Interface* pInterface;
 public:
 	friend Object;
+	friend TexturedObject;
+	friend Interface;
+	UINT width;
+	UINT height;
 
 	RenderSys();
 	~RenderSys();
@@ -521,5 +643,12 @@ public:
 		{ 
 			(*it)->setMaterialState(false);
 		}
+	}
+
+	void OnResize(UINT _width, UINT _height)
+	{
+		width = _width;
+		height = _height;
+		//@TODO Call resize for all object, that need resizing
 	}
 };

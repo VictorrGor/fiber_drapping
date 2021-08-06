@@ -138,3 +138,12 @@ struct bSplinePt
 	bSplinePt& operator=(const bSplinePt& obj);
 };
 
+
+
+struct TextTextureInfo
+{
+	char ch;
+	float leftU;
+	float rightU;
+	UINT pixelWidth;
+};

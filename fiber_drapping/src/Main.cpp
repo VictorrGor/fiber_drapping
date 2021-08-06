@@ -1,6 +1,7 @@
 #define DEBUG_CONSOLE
 #include "Render.h"
 
+#include "Utils.h"
 
 RenderSys rs;
 
@@ -8,6 +9,7 @@ LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 
 HRESULT InitWindow(HINSTANCE hInst, int nCmdShow, HWND* hWnd)
 {
+	convertTextInfoFileToBin("resources/texture/ASCI_desc.txt", "resources/texture/ASCI_desc.binary");
 	file.open("log", std::ios_base::trunc);
 	WNDCLASSEX wc = { 0 };
 	wchar_t name[] = L"Name";
@@ -58,6 +60,17 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpCmdLine, int nCmdSh
 		return 0;
 	}
 
+	RECT rc;
+	if (!GetClientRect(hWnd, &rc))
+	{
+		MessageBox(NULL, L"Getting rect faild! Something goes wrong.", L"Error!", MB_OK);
+		rs.CleanupDevice();
+		return 0;
+	}
+	UINT width = rc.right - rc.left;
+	UINT height = rc.bottom - rc.top;
+	rs.OnResize(width, height);
+
 	if (FAILED(rs.InitDevice(&hWnd)))
 	{
 		MessageBox(NULL, L"Initialization faild! Something goes wrong.", L"Error!", MB_OK);
@@ -103,63 +116,84 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	
 	switch (uMsg)
 	{
-	case WM_PAINT:
-		hDC = BeginPaint(hWnd, &ps);
-		EndPaint(hWnd, &ps);
-		break;
-
-	case WM_CLOSE:
-		DestroyWindow(hWnd);
-		break;
-
-	case WM_DESTROY:
-		file.close();
-		PostQuitMessage(0);
-		break;
-	case WM_KEYDOWN:
-		switch (wParam)
+		case WM_PAINT:
 		{
-			case VK_ESCAPE:
+			hDC = BeginPaint(hWnd, &ps);
+			EndPaint(hWnd, &ps);
+			break;
+		}
+		case WM_CLOSE:
+		{
+			DestroyWindow(hWnd);
+			break;
+		}
+		case WM_DESTROY:
+		{
+			file.close();
+			PostQuitMessage(0);
+			break;
+		}
+		case WM_KEYDOWN:
+		{
+			switch (wParam)
 			{
-				DestroyWindow(hWnd);
-				break;
-			}
-			case VK_SPACE:
-			{
-				rs.disableMaterials();
-				break;
-			}
-		};
-		break;
-	case WM_MOUSEWHEEL:
-	{
-		int buff = (short)HIWORD(wParam);
-		wheel_dist += 3 * (short)HIWORD(wParam) / WHEEL_DELTA;
-		if (wheel_dist < 1) wheel_dist = 1;
-		rs.getMouse()->updWheelPos(wheel_dist);
-		break;
-	}
-	case WM_LBUTTONDOWN:
-		rs.getMouse()->updLK(true);
-		break;
-	case WM_RBUTTONDOWN:
-		rs.getMouse()->updRK(true);
-		break;
-	case WM_LBUTTONUP:
-		rs.getMouse()->updLK(false);
-		break;
-	case WM_RBUTTONUP:
-		rs.getMouse()->updRK(false);
-		break;
-
-	case WM_MOUSEMOVE:
-		POINT pt; 
-		pt.x = LOWORD(lParam);
-		pt.y = HIWORD(lParam);
-		rs.getMouse()->updMousePos(pt);
-		break;
-	default:
-		return DefWindowProc(hWnd, uMsg, wParam, lParam);
-	}
+				case VK_ESCAPE:
+				{
+					DestroyWindow(hWnd);
+					break;
+				}
+				case VK_SPACE:
+				{
+					rs.disableMaterials();
+					break;
+				}
+			};
+			break;
+		}
+		case WM_MOUSEWHEEL:
+		{
+			int buff = (short)HIWORD(wParam);
+			wheel_dist += 3 * (short)HIWORD(wParam) / WHEEL_DELTA;
+			if (wheel_dist < 1) wheel_dist = 1;
+			rs.getMouse()->updWheelPos(wheel_dist);
+			break;
+		}
+		case WM_LBUTTONDOWN:
+		{
+			rs.getMouse()->updLK(true);
+			break;
+		}
+		case WM_RBUTTONDOWN:
+		{
+			rs.getMouse()->updRK(true);
+			break;
+		}
+		case WM_LBUTTONUP:
+		{
+			rs.getMouse()->updLK(false);
+			break;
+		}
+		case WM_RBUTTONUP:
+		{
+			rs.getMouse()->updRK(false);
+			break;
+		}
+		case WM_MOUSEMOVE:
+		{
+			POINT pt;
+			pt.x = LOWORD(lParam);
+			pt.y = HIWORD(lParam);
+			rs.getMouse()->updMousePos(pt);
+			break;
+		}
+		case WM_SIZE:
+		{
+			UINT width = LOWORD(lParam);
+			UINT height = HIWORD(lParam);
+			rs.OnResize(width, height);
+		}
+		default:
+			return DefWindowProc(hWnd, uMsg, wParam, lParam);
+		}
 	return 0;
 }
