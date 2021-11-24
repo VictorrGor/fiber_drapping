@@ -63,6 +63,8 @@ void convertTextInfoFileToBin(const char* filename_txt, const char* filename_bin
 		}
 		else
 		{
+			delete[] searchBuf;
+			delete[] textBuf;
 			throw "Size of first char more then one!";
 		}
 		value += 1;

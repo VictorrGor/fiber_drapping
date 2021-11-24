@@ -1,4 +1,6 @@
-#include "Bspline.h"
+// This is a personal academic project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
+#include "../Math/Bspline.h"
 
 size_t splineDegree = 3;
 
@@ -433,7 +435,10 @@ void SurfMeshParams(size_t n, size_t m, vertex** Q, double** uk, double** vl)
 		}
 	}
 	if (num == 0)
+	{
+		delete[] cds;
 		throw "Error!";
+	}
 	for (int k = 1; k < (n - 1); k++)
 	{
 		(*uk)[k] = (*uk)[k] / num;
@@ -470,7 +475,10 @@ void SurfMeshParams(size_t n, size_t m, vertex** Q, double** uk, double** vl)
 		}
 	}
 	if (num == 0)
+	{
+		delete[] cds;
 		throw "Error!";
+	}
 	for (size_t k = 1; k < m - 1; k++)	(*vl)[k] = (*vl)[k] / num;
 
 #ifdef LOG_ON
@@ -557,7 +565,11 @@ double* LUForwardBackward(double** L, double** U, double* b, size_t q)
 		{
 			b[i] -= L[i][j] * y[j];
 		}
-		if (!L[i][i]) throw "LUForwardBackward: L[i][i] is null!";
+		if (!L[i][i])
+		{
+			delete[] y;
+			throw "LUForwardBackward: L[i][i] is null!";
+		}
 		b[i] /= L[i][i];
 		y[i] = b[i];
 	}
@@ -823,4 +835,306 @@ double getSplineLen(double _left, double _right, vertex *(*ffunc)(splineInfo, si
 {
 	vec3 v1 = integrate(0, 1, *CurveDerivateAlg1, _spi);
 	return sqrt(pow(v1.x, 2) + pow(v1.y, 2) + pow(v1.z, 2));
+}
+
+void getKnotForApproximationSurf(double* U, double* ub, int m, int n, int p)
+{
+	double d = (m + 1) / (n - p + 1);
+	double a = 0;
+	int i = 0;
+	for (int x = 0;  x <= p; ++x)
+	{
+		U[x] = 0;
+	}
+	for (int j = 1; j < n - p; ++j)
+	{
+		i = (int)(j * d);
+		a = j * d - i;
+		U[p + j] = (1 - a) * ub[i - 1] + a * ub[i];
+	}
+	for (int j = n-p; j < n + p + 2; ++j)
+	{
+		U[p + j] = 1;
+	}
+}
+
+void makeNAproximateionMatrix_new(double*** N, double* u, double* _knot, int knot_size, int n, int m, int p)
+{
+	//m -= 2;
+	(*N) = new double* [m - 2];
+	for (int i = 0; i < m - 2; ++i)
+	{
+		(*N)[i] = new double[n - 2];
+		memset((*N)[i], 0, sizeof(double) * (n - 2));
+	}
+	double* pRes = new double[p + 1];
+	for (int i = 1; i < m - 1; ++i)
+	{
+		int zspan = FindSpan(n, p, u[i], _knot, knot_size);
+		BasisFuncs(zspan, u[i], p, _knot, pRes);
+		for (int pi = 0; pi < p; ++pi)
+		{
+			(*N)[i - 1][zspan + pi] = pRes[pi];
+		}
+	}
+	delete[] pRes;
+}
+
+void makeNAproximateionMatrix(double*** N, double* u, int n, int m, int p, int u_size)
+{
+	//m -= 2;
+	(*N) = new double* [m - 2];
+	for (int i = 0; i < m - 2; ++i)
+	{
+		(*N)[i] = new double[n - 2];
+		memset((*N)[i], 0, sizeof(double) * (n - 2));
+	}
+	double* pRes = new double[p + 1];
+	for (int i = 1; i < m - 1; ++i)
+	{
+		int zspan = FindSpan(m-2, p, u[i], u, u_size);
+		BasisFuncs(zspan, u[i], p, u, pRes);
+		for (int pi = 0; pi < p; ++pi)
+		{
+			(*N)[i - 1][zspan + pi] = pRes[pi];
+		}
+	}
+	delete[] pRes;
+}
+
+surfInfo BSplineSurface(int r, int s, vertex** const Q, int p, int q, double** U, double** V, vertex*** P, int u_pt_cnt, int v_pt_cnt)
+{
+	double* ub, * vb;
+	SurfMeshParams(r, s, Q, &ub, &vb); 
+	(*U) = computeKnotVector(ub, p, r);
+	(*V) = computeKnotVector(vb, q, s);
+	
+
+	(*P) = new vertex*[u_pt_cnt];
+	for (int i = 0; i < u_pt_cnt; ++i)
+	{
+		(*P)[i] = new vertex[v_pt_cnt];
+	}
+
+	surfInfo surfInf;
+	surfInf.controlPoints = Q;
+	surfInf.n = r;
+	surfInf.m = s;
+	surfInf.p = 3;
+	surfInf.q = 3;
+	surfInf.Uk = *U;
+	surfInf.Vl = *V;
+	for (int i = 0; i < u_pt_cnt; ++i)
+	{
+		std::cout << i << "\n";
+		for (int j = 0; j < v_pt_cnt; ++j)
+		{
+			(*P)[i][j] = SurfacePoint(&surfInf, (float)i / (u_pt_cnt - 1), (float)j / (v_pt_cnt - 1));
+		}
+	}
+	delete[] ub, vb;
+	return surfInf;
+}
+
+
+void transponateMatrix(double** _N, int _n, int _m, double*** _pRes)
+{
+	(*_pRes) = new double* [_m];
+	for (int i = 0; i < _m; ++i)
+	{
+		(*_pRes)[i] = new double[_n];
+	}
+	for (int i = 0; i < _n; ++i)
+	{
+		for (int j = 0; j < _m; ++j)
+		{
+			(*_pRes)[j][i] = _N[i][j];
+		}
+	}
+}
+
+//Return multiple of two matrix N and transponated N. N is (m-2) * (n-2) matrix.
+void makeNTNuAproxMx(double** _N, double** _Nt, double*** _pRes, int _n, int _m)
+{
+	(*_pRes) = new double* [_n];
+	for (int i = 0; i < _n; ++i)
+	{
+		(*_pRes)[i] = new double[_n];
+		memset((*_pRes)[i], 0, sizeof(double) * _n);
+	}
+	for (int i = 0; i < _n; ++i)
+	{
+		for (int j = 0; j < _n; ++j)
+		{
+			for (int k = 0; k < _m; ++k)
+			{
+				(*_pRes)[i][j] += _N[i][k] + _Nt[k][j];
+			}
+		}
+	}
+}
+
+
+void GlobalAproximationBSpline(int r, int s, vertex** const Q, int p, int q, int n, int m, double** U, double** V, vertex*** P)
+{
+	int U_knot_size = n + p + 1;
+	int V_knot_size = m + q + 1;
+	(*U) = new double[U_knot_size];
+	(*V) = new double[V_knot_size];
+
+	double* ub, *vb;
+	SurfMeshParams(r, s, Q, &ub, &vb); // Get interpolation params u|, v|
+	getKnotForApproximationSurf(*U, ub, n, r, p); //Get knot vector U
+	getKnotForApproximationSurf(*V, vb, m, s, q); //Get knot vector V
+	
+	
+	//U direction fits
+	double** Nu, ** Nut, ** NNut;
+	int Nu_u_size = r - 2;
+	int Nu_v_size = n - 2;
+	//makeNAproximateionMatrix(&Nu, *U, n, r, p, U_knot_size);
+	makeNAproximateionMatrix_new(&Nu, ub, (*U), U_knot_size, n, r, p);
+	transponateMatrix(Nu, Nu_u_size, Nu_v_size, &Nut);
+	makeNTNuAproxMx(Nut, Nu, &NNut, Nu_v_size, Nu_u_size);
+	std::ofstream pFile;
+	pFile.open("mx_Nu_log.txt");
+	for (int i = 0; i < Nu_u_size; ++i)
+	{
+		for (int j = 0; j < Nu_v_size; ++j)
+		{
+			pFile << Nu[i][j] << "\t";
+		}
+		pFile << "\n";
+	}
+	pFile.close();
+	pFile.open("mx_NNut_log.txt");
+	for (int i = 0; i < Nu_v_size; ++i)
+	{
+		for (int j = 0; j < Nu_v_size; ++j)
+		{
+			pFile << NNut[i][j] << "\t";
+		}
+		pFile << "\n";
+	}
+	pFile.close();
+
+	double** Lar, ** Uar;
+	vertex **Temp = new vertex*[n];
+	for (int i = 0; i < r; ++i)
+	{
+		Temp[i] = new vertex[s];
+	}
+
+	Lar = new double* [Nu_v_size];
+	Uar = new double* [Nu_v_size];
+	LUDecomposition(NNut, Nu_v_size, &Lar, &Uar);
+	
+	//Get R Column
+	double* Rx = new double[n - 2];
+	double* Ry = new double[n - 2];
+	double* Rz = new double[n - 2];
+	double* basisN = new double[p + 1];
+
+	for (int j = 0; j < s; ++j)
+	{
+		Temp[0][j] = Q[0][j];
+		Temp[n][j] = Q[r][j];
+		for (int i = 1; i < n - 1; ++i)
+		{
+			BasisFuncs(0, ub[i], p, (*U), basisN);
+			Rx[i] = Q[i][j].pos.x - basisN[0] * Q[0][j].pos.x;
+			Ry[i] = Q[i][j].pos.y - basisN[0] * Q[0][j].pos.y;
+			Rz[i] = Q[i][j].pos.z - basisN[0] * Q[0][j].pos.z;
+			BasisFuncs(n, ub[i], p, (*U), basisN);
+			Rx[i] -= basisN[0] * Q[r][j].pos.x;
+			Ry[i] -= basisN[0] * Q[r][j].pos.y;
+			Rz[i] -= basisN[0] * Q[r][j].pos.z;
+		}
+		double* pResX = LUForwardBackward(Lar, Uar, Rx, Nu_u_size);
+		double* pResY = LUForwardBackward(Lar, Uar, Ry, Nu_u_size);
+		double* pResZ = LUForwardBackward(Lar, Uar, Rz, Nu_u_size);
+		for (int i = 1; i < n - 1; ++i)
+		{
+			Temp[i][j].pos.x = pResX[i - 1];
+			Temp[i][j].pos.y = pResY[i - 1];
+			Temp[i][j].pos.z = pResZ[i - 1];
+		}
+		delete[] pResX,  pResY, pResZ;
+	}
+	delete[] Rx, Ry, Rz, basisN;
+	for (int i = 0; i < Nu_u_size; ++i)
+	{
+		delete[] Nu[i], Lar[i], Uar[i];
+	}
+	delete[] Nu, Lar, Uar;
+	for (int i = 0; i < Nu_v_size; ++i)
+	{
+		delete[] NNut[i];
+		delete[] Nut[i];
+	}
+	delete[] NNut;
+	delete[] Nut;
+	
+	/////////////////V directions fits
+	double** Nv, ** Nvt, ** NNvt;
+	int Nv_u_size = s - 2;
+	int Nv_v_size = m - 2;
+	makeNAproximateionMatrix(&Nv, *V, m, s, q, V_knot_size);
+	transponateMatrix(Nv, Nv_u_size, Nv_v_size, &Nvt);
+	makeNTNuAproxMx(Nv, Nvt, &NNvt, Nv_u_size, Nv_v_size);
+
+	vertex** _P = (*P);
+	_P = new vertex * [n];
+	for (int i = 0; i < n; ++i)
+	{
+		_P[i] = new vertex[m];
+	}
+
+	Rx = new double[m - 2];
+	Ry = new double[m - 2];
+	Rz = new double[m - 2];
+	basisN = new double[q + 1];
+	LUDecomposition(NNvt, Nv_v_size, &Lar, &Uar);
+	for (int i = 0; i < n; ++i)
+	{
+		_P[i][0] = Temp[i][0];
+		_P[i][m] = Temp[i][s];
+		for (int j = 1; j < m - 1; ++j)
+		{
+			BasisFuncs(0, vb[j], q, (*V), basisN);
+			Rx[i] = Q[j][i].pos.x - basisN[0] * Q[j][0].pos.x;
+			Ry[i] = Q[j][i].pos.y - basisN[0] * Q[j][0].pos.y;
+			Rz[i] = Q[j][i].pos.z - basisN[0] * Q[j][0].pos.z;
+			BasisFuncs(m, vb[j], q, (*V), basisN);
+			Rx[i] -= basisN[0] * Q[j][s].pos.x;
+			Ry[i] -= basisN[0] * Q[j][s].pos.y;
+			Rz[i] -= basisN[0] * Q[j][s].pos.z;
+		}
+		double* pResX = LUForwardBackward(Lar, Uar, Rx, Nv_u_size);
+		double* pResY = LUForwardBackward(Lar, Uar, Ry, Nv_u_size);
+		double* pResZ = LUForwardBackward(Lar, Uar, Rz, Nv_u_size);
+		for (int j = 1; j < m - 1; ++j)
+		{
+			_P[i][j].pos.x = pResX[j - 1];
+			_P[i][j].pos.y = pResY[j - 1];
+			_P[i][j].pos.z = pResZ[j - 1];
+		}
+		delete[] pResX, pResY, pResZ;
+	}
+	delete[] Rx, Ry, Rz, basisN;
+	
+	for (int i = 0; i < Nv_u_size; ++i)
+	{
+		delete[] Nv[i], Lar[i], Uar[i];
+	}
+	delete[] Nv, Lar, Uar;
+	for (int i = 0; i < Nv_v_size; ++i)
+	{
+		delete[] Nvt[i], NNvt[i];
+	}
+	delete[] Nvt, NNvt;
+
+	for (int i = 0; i < n; ++i) delete[] Temp[i];
+	delete[] Temp;
+	delete[] ub, vb;
 }

@@ -1,9 +1,10 @@
 #pragma once
 
-#include "DataStructures.h"
-#include "MathLib.h"
 #include <DirectXMath.h>
 #include <iomanip>
+#include "../Render/DataStructures.h"
+#include "MathLib.h"
+#include "fstream"
 
 //#define LOG_ON
 
@@ -13,6 +14,7 @@ extern size_t splineDegree;
 splineInfo addInterpolationSpline(vertex* vtx, size_t pointCount);
 void getInterpolationKnotVector(size_t pointCount, double* forwardU, double* backwardU, size_t knotVectorSize, vertex* vtx);
 void BasisFuncs(size_t _i, double _u, size_t _p, double * _knots, double* pRes);
+//_n - control points count, +p - spline degree, _u - param, _knot - knot, _knotSize - knot size
 size_t FindSpan(size_t _n, size_t _p, double _u, double * _knot, size_t _knotSize);
 double* makeKnotVector(size_t _ptCount, size_t _q);
 vertex CurvePoint(splineInfo _spI, size_t _p, double _u);
@@ -58,3 +60,17 @@ vertex SurfacePoint(surfInfo* sfI, double u, double v);
 vertex** SurfaceDerivsAlg1(surfInfo* sfI, double u, double v, size_t d);
 
 double getSplineLen(double _left, double _right, vertex*(*ffunc)(splineInfo, size_t, double, size_t), splineInfo _spi, size_t _p = 3, size_t n = 100);
+
+//Eqs 6.69 (NURBS Book)
+//m - approximation control points
+//n - initial curve control points
+void getKnotForApproximationSurf(double* U, double* ub, int m, int n, int p);
+
+//Let Q(r, s) - set of control points to be approximated by (p,q) nonrational surface V with (n)*(m) control points
+void GlobalAproximationBSpline(int r, int  s, vertex** const Q, int p, int q, int n, int m, double** U, double**  V, vertex*** P);
+
+void makeNAproximateionMatrix(double*** N, double* u, int n, int m, int p, int u_size);
+
+//Let Q(r, s) - set of control points to be approximated by (p,q) nonrational surface V with (n)*(m) control points
+surfInfo BSplineSurface(int r, int s, vertex** const Q, int p, int q, double** U, double** V, vertex*** P, int u_pt_cnt, int v_pt_cnt);
+

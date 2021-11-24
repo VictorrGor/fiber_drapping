@@ -1,4 +1,6 @@
-#include "MathLib.h"
+// This is a personal academic project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
+#include "Math/MathLib.h"
 
 //Это нельзя использовать!!! Утечка памяти, ffunc возвращает масив точек, котороый после не алоцируется
 vec3 integrate(double _left, double _right, vertex*(*ffunc)(splineInfo, size_t, double, size_t), splineInfo _spi, size_t _p, size_t n)
@@ -91,7 +93,7 @@ vec3 coonsDerArea(splineInfo * c1, splineInfo * c2, splineInfo * d1, splineInfo 
 		rr.z = 0;
 	}
 
-	if ((rr.x < 0) || (rr.y < 0) || (rr.y < 0))
+	if ((rr.x < 0) || (rr.y < 0) || (rr.z < 0))
 	{
 		std::cout << "rr is: " << rr.x << " " << rr.y << " " << rr.z << "\n";
 		std::cout << "Error!";

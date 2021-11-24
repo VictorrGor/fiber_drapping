@@ -1,9 +1,10 @@
-#include "Drapping.h"
-#include <fstream>
+п»ї// This is a personal academic project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
+#include "../Math/Drapping.h"
 
 size_t cool_counter = 0;
 
-//pt - Точка в которой считается Якобиан
+//pt - Г’Г®Г·ГЄГ  Гў ГЄГ®ГІГ®Г°Г®Г© Г±Г·ГЁГІГ ГҐГІГ±Гї ГџГЄГ®ГЎГЁГ Г­
 void getJakobain(float** W, vec3* ptIJ, vec3* ptIm1J, vec3* ptIJm1)
 {
 	W[0][0] = 2 * (ptIJ->x - ptIm1J->x);
@@ -45,7 +46,7 @@ void calculateObr(float** W, float** invW)
 		}
 	}
 
-	//Прямой ход
+	//ГЏГ°ГїГ¬Г®Г© ГµГ®Г¤
 	for (size_t j = 0; j < 3; ++j)
 	{
 		if (W[j][j] != 0)
@@ -71,7 +72,7 @@ void calculateObr(float** W, float** invW)
 		{
 			if ( ( j+1 < 3) && (W[j + 1][j] != 0))
 			{
-				//Замена ряда на подходящий
+				//Г‡Г Г¬ГҐГ­Г  Г°ГїГ¤Г  Г­Г  ГЇГ®Г¤ГµГ®Г¤ГїГ№ГЁГ©
 				float* swapRow = W[j];
 				W[j] = W[j + 1];
 				W[j + 1] = swapRow;
@@ -81,7 +82,7 @@ void calculateObr(float** W, float** invW)
 				invW[j + 1] = swapRow;
 
 
-				//Продолжаем
+				//ГЏГ°Г®Г¤Г®Г«Г¦Г ГҐГ¬
 				buf = W[j][j];
 				for (size_t i = 0; i < 3; i++)
 				{
@@ -103,7 +104,7 @@ void calculateObr(float** W, float** invW)
 			{
 				if ((j + 2 < 3) && (W[j + 2][j] != 0))
 				{
-					//Замена ряда на подходящий
+					//Г‡Г Г¬ГҐГ­Г  Г°ГїГ¤Г  Г­Г  ГЇГ®Г¤ГµГ®Г¤ГїГ№ГЁГ©
 					float* swapRow = W[j];
 					W[j] = W[j + 2];
 					W[j + 2] = swapRow;
@@ -112,7 +113,7 @@ void calculateObr(float** W, float** invW)
 					invW[j] = invW[j + 2];
 					invW[j + 2] = swapRow;
 
-					//Продолжаем
+					//ГЏГ°Г®Г¤Г®Г«Г¦Г ГҐГ¬
 					buf = W[j][j];
 					for (size_t i = 0; i < 3; i++)
 					{
@@ -144,7 +145,7 @@ void calculateObr(float** W, float** invW)
 			std::cout << std::endl;
 		}
 	}
-	//Обратный ход
+	//ГЋГЎГ°Г ГІГ­Г»Г© ГµГ®Г¤
 	for (int j = 2; j > 0 ; --j)
 	{		
 		for (int s = j - 1; s >= 0; --s)
@@ -183,9 +184,9 @@ void solveSLAU(float** W, float* f, float* dx)
 	}
 
 	float buf = 0;
-	float zeroEbs = 0.0001; //Меньше этого числа, число считается нулём
+	float zeroEbs = 0.0001; //ГЊГҐГ­ГјГёГҐ ГЅГІГ®ГЈГ® Г·ГЁГ±Г«Г , Г·ГЁГ±Г«Г® Г±Г·ГЁГІГ ГҐГІГ±Гї Г­ГіГ«ВёГ¬
 
-	//Прямой ход
+	//ГЏГ°ГїГ¬Г®Г© ГµГ®Г¤
 	for (size_t j = 0; j < 3; ++j)
 	{
 		//printMx(W);
@@ -214,7 +215,7 @@ void solveSLAU(float** W, float* f, float* dx)
 		{
 			if ((j + 1 < 3) && (W[j+1][j] != 0) && (fabs(W[j+1][j]) > zeroEbs))
 			{
-				//Замена ряда на подходящий
+				//Г‡Г Г¬ГҐГ­Г  Г°ГїГ¤Г  Г­Г  ГЇГ®Г¤ГµГ®Г¤ГїГ№ГЁГ©
 				float* swapRow = W[j];
 				W[j] = W[j + 1];
 				W[j + 1] = swapRow;
@@ -224,7 +225,7 @@ void solveSLAU(float** W, float* f, float* dx)
 				dx[j + 1] = buf;
 
 
-				//Продолжаем
+				//ГЏГ°Г®Г¤Г®Г«Г¦Г ГҐГ¬
 				buf = W[j][j];
 
 				dx[j] /= buf;
@@ -248,7 +249,7 @@ void solveSLAU(float** W, float* f, float* dx)
 			{
 				if ((j + 2 < 3) && (W[j+2][j] != 0) && (fabs(W[j+2][j]) > zeroEbs))
 				{
-					//Замена ряда на подходящий
+					//Г‡Г Г¬ГҐГ­Г  Г°ГїГ¤Г  Г­Г  ГЇГ®Г¤ГµГ®Г¤ГїГ№ГЁГ©
 					float* swapRow = W[j];
 					W[j] = W[j + 2];
 					W[j + 2] = swapRow;
@@ -257,7 +258,7 @@ void solveSLAU(float** W, float* f, float* dx)
 					dx[j] = dx[j + 2];
 					dx[j + 2] = buf;
 
-					//Продолжаем
+					//ГЏГ°Г®Г¤Г®Г«Г¦Г ГҐГ¬
 					buf = W[j][j];
 
 					dx[j] /= buf;
@@ -284,7 +285,7 @@ void solveSLAU(float** W, float* f, float* dx)
 			}
 		}
 	}
-	//Обратный ход
+	//ГЋГЎГ°Г ГІГ­Г»Г© ГµГ®Г¤
 	for (int j = 2; j > 0; --j)
 	{
 		for (int s = j - 1; s >= 0; --s)
@@ -298,7 +299,7 @@ void solveSLAU(float** W, float* f, float* dx)
 		}
 	}
 
-	//Проверка на зависимость переменных друг от друга:
+	//ГЏГ°Г®ГўГҐГ°ГЄГ  Г­Г  Г§Г ГўГЁГ±ГЁГ¬Г®Г±ГІГј ГЇГҐГ°ГҐГ¬ГҐГ­Г­Г»Гµ Г¤Г°ГіГЈ Г®ГІ Г¤Г°ГіГЈГ :
 	if ((W[0][0] != 1) || (W[1][1] != 1) || (W[2][2] != 1))
 	{
 		//printMx(W);
@@ -339,7 +340,7 @@ void minorObr(float** W, float** invW)
 	{
 		throw "det == 0!\n";
 	}
-	//Создаём матрицу миноров
+	//Г‘Г®Г§Г¤Г ВёГ¬ Г¬Г ГІГ°ГЁГ¶Гі Г¬ГЁГ­Г®Г°Г®Гў
 	invW[0][0] = W[0][0] * (W[1][1] * W[2][2] - W[1][2] * W[2][1]);
 	invW[0][1] = -W[0][1] * (W[1][0] * W[2][2] - W[1][2] * W[2][2]) ;
 	invW[0][2] = W[0][2] * (W[1][0] * W[2][1] - W[1][1] * W[2][0]) ;
@@ -351,12 +352,12 @@ void minorObr(float** W, float** invW)
 	invW[2][0] = W[2][0] * (W[0][1] * W[1][2] - W[0][2] * W[1][1]);
 	invW[2][1] = -W[2][1] * (W[0][0] * W[1][2] - W[0][2] * W[1][0]);
 	invW[2][2] = W[2][2] * (W[0][0] * W[1][1] - W[0][1] * W[1][0]);
-	//Меняем знаки, чтобы сделать матрицу алгебраических дополнений
+	//ГЊГҐГ­ГїГҐГ¬ Г§Г­Г ГЄГЁ, Г·ГІГ®ГЎГ» Г±Г¤ГҐГ«Г ГІГј Г¬Г ГІГ°ГЁГ¶Гі Г Г«ГЈГҐГЎГ°Г ГЁГ·ГҐГ±ГЄГЁГµ Г¤Г®ГЇГ®Г«Г­ГҐГ­ГЁГ©
 	invW[0][1] = -invW[0][1];
 	invW[1][0] = -invW[1][0];
 	invW[1][2] = -invW[1][2];
 	invW[2][1] = -invW[2][1];
-	//Транспонируем полученную матрицу
+	//Г’Г°Г Г­Г±ГЇГ®Г­ГЁГ°ГіГҐГ¬ ГЇГ®Г«ГіГ·ГҐГ­Г­ГіГѕ Г¬Г ГІГ°ГЁГ¶Гі
 	float buf = 0;
 
 	buf = invW[1][0];
@@ -388,7 +389,7 @@ void minorObr(float** W, float** invW)
 	}
 
 }
-//Умножение матрицы на число
+//Г“Г¬Г­Г®Г¦ГҐГ­ГЁГҐ Г¬Г ГІГ°ГЁГ¶Г» Г­Г  Г·ГЁГ±Г«Г®
 void scaleMx(float** mx, float num)
 {
 	for (size_t i = 0; i < 3; ++i)
@@ -402,7 +403,7 @@ void scaleMx(float** mx, float num)
 
 //std::ofstream ppfile;
 
-//Поиск точки на поверхности методом Нюьтона
+//ГЏГ®ГЁГ±ГЄ ГІГ®Г·ГЄГЁ Г­Г  ГЇГ®ГўГҐГ°ГµГ­Г®Г±ГІГЁ Г¬ГҐГІГ®Г¤Г®Г¬ ГЌГѕГјГІГ®Г­Г 
 /*bool getPt(float** W, float** invW, vec3* ptIJ, vec3* ptIm1J, vec3* ptIJm1)
 {
 	cool_counter++;
@@ -422,7 +423,7 @@ void scaleMx(float** mx, float num)
 	while (flag && (maxIterCt > i))
 	{
 		getJakobain(W, ptIJ, ptIm1J, ptIJm1);
-		///@todo При расчёте обратной матрицы передавать уже готовую, а не каждый раз выделять память
+		///@todo ГЏГ°ГЁ Г°Г Г±Г·ВёГІГҐ Г®ГЎГ°Г ГІГ­Г®Г© Г¬Г ГІГ°ГЁГ¶Г» ГЇГҐГ°ГҐГ¤Г ГўГ ГІГј ГіГ¦ГҐ ГЈГ®ГІГ®ГўГіГѕ, Г  Г­ГҐ ГЄГ Г¦Г¤Г»Г© Г°Г Г§ ГўГ»Г¤ГҐГ«ГїГІГј ГЇГ Г¬ГїГІГј
 		getF(f, ptIJ, ptIm1J, ptIJm1);
 		solveSLAU(W, f, dx);
 
@@ -463,7 +464,7 @@ bool getBSplineDrapPoint(double** W, double** invW, bSplinePt* ptIJ, bSplinePt* 
 	double* f = new double[dim];
 	double* dx;
 
-	float epsilon = 0.00001;
+	float epsilon = 0.001; // Р’Р°СЂСЊРёСЂРѕРІР°С‚СЊ СЃСЂР°РІРЅРµРЅРёРµ РѕС€РёР±РєРё РІ Р·Р°РІРёСЃРёРјРѕСЃС‚Рё РѕС‚ РЅР°РєРѕРїР»РµРЅРЅРѕР№ РѕС€РёР±РєРё. Рў.Рµ. РµСЃР»Рё РЅР°РєРѕРїРёР»Р°СЃСЊ Р±РѕР»СЊС€Р°СЏ РѕС€РёР±РєР°, С‚Рѕ СѓРјРµРЅСЊС€Р°С‚СЊ РјР°РєРёСЃРјР°Р»СЊРЅРѕ РІР·РѕРјРѕР¶РЅСѓСЋ, РёР»Рё РїСЂРёР¶РёРјР°С‚СЊ РІ РґСЂСѓРіСѓСЋ СЃС‚РѕСЂРѕРЅСѓ
 	float len = 100000;
 	
 	bool corrupted = false;
@@ -490,49 +491,36 @@ bool getBSplineDrapPoint(double** W, double** invW, bSplinePt* ptIJ, bSplinePt* 
 		dx[0] *= 0.001;
 		dx[1] *= 0.001;
 		//if ((ptIJ->u + dx[0] < 0) || (ptIJ->v + dx[1] < 0) || (ptIJ->u + dx[0] > 1) || (ptIJ->v + dx[1] > 1)) corrupted = true;
-
+		vertex oldPoint = *(ptIJ->pt);
 		
 		if (ptIJ->v + dx[1] < 0)
 		{
-			while (ptIJ->v + dx[1] < 0)
-			{
-				//dx[1] = 1 + dx[1];
-				dx[1] = 0;
-			}
+			dx[1] = 0;
+			ptIJ->v = 0;
 		}
 		else
 			if (ptIJ->v + dx[1] > 1)
 			{
-				while (ptIJ->v + dx[1] > 1)
-				{
-					dx[1] = -1 + dx[1];
-					dx[0] += 0.5;
-				}
+				dx[1] = 0;
+				ptIJ->v = 1;
 			}
 		if (ptIJ->u + dx[0] < 0)
 		{
-			while (ptIJ->u + dx[0] < 0)
-				dx[0] = 1 + dx[0];
+			dx[0] = 0;
+			ptIJ->u = 0;
 		}
 		else
 			if (ptIJ->u + dx[0] > 1)
 			{
-				while (ptIJ->u + dx[0] > 1)
-					dx[0] = -1. + dx[0];
+				dx[0] = 0;
+				ptIJ->u = 1;
 			}
 
-		vertex bufV = SurfacePoint(sfI, ptIJ->u + dx[0], ptIJ->v + dx[1]);
-		len = sqrt(pow((ptIJ->pt->pos.x - bufV.pos.x), 2) + pow((ptIJ->pt->pos.y - bufV.pos.y), 2) + pow((ptIJ->pt->pos.z - bufV.pos.z), 2));
-		/*std::cout << "Len is: " << len << "\n";
-		std::cout << "A is: " << A << "\nB is: " << B
-			<< "\ncaluclate A is: " << pow((ptIJ->pt->pos.x - ptIm1J->pt->pos.x), 2) + pow((ptIJ->pt->pos.y - ptIm1J->pt->pos.y), 2) +
-			pow((ptIJ->pt->pos.z - ptIm1J->pt->pos.z), 2)
-			<< "\ncaluclate B is: " << pow((ptIJ->pt->pos.x - ptIJm1->pt->pos.x), 2) + pow((ptIJ->pt->pos.y - ptIJm1->pt->pos.y), 2) +
-			pow((ptIJ->pt->pos.z - ptIJm1->pt->pos.z), 2) << "\n";*/
 			
 		ptIJ->u += dx[0];
 		ptIJ->v += dx[1];
-		(*ptIJ->pt) = bufV;
+		(*ptIJ->pt) = SurfacePoint(sfI, ptIJ->u, ptIJ->v);
+		
 
 		for (size_t ct1 = 0; ct1 < dim; ++ct1)
 		{
@@ -543,7 +531,7 @@ bool getBSplineDrapPoint(double** W, double** invW, bSplinePt* ptIJ, bSplinePt* 
 		delete[] dx;
 		delete[] IJder;
 
-		if ((len <= epsilon) && !corrupted) 
+		if ((f[0] <= A * epsilon) && (f[1] <= B * epsilon) && !corrupted)
 		//if ((fabs(f[0]) < 0.01) && (fabs(f[1]) < 0.01))
 		{
 			flag = false;
@@ -699,7 +687,7 @@ float getTetaAngle(vertex** gird, size_t i, size_t j)
 float getAngle(vertex** gird, size_t i, size_t j, size_t p, size_t q, size_t s, size_t h)
 {
 	struct { float fi; float teta;} p0, p1, p2;
-	XMFLOAT3 v1, v2;//Направление p0p1 и p0p2
+	XMFLOAT3 v1, v2;//ГЌГ ГЇГ°Г ГўГ«ГҐГ­ГЁГҐ p0p1 ГЁ p0p2
 	v1.x = gird[p][q].pos.x - gird[i][j].pos.x;
 	v1.y = gird[p][q].pos.y - gird[i][j].pos.y;
 	v1.z = gird[p][q].pos.z - gird[i][j].pos.z;
@@ -713,3 +701,216 @@ float getAngle(vertex** gird, size_t i, size_t j, size_t p, size_t q, size_t s, 
 	return angle.m128_f32[0] * 57.2958;
 }
 
+
+void drapping_part(RenderSys* _rs, surfInfo* sfI, double u1, double v1, bool isU1, double u2, double v2, bool isU2)
+{
+	UINT size = GIRD_SIZE;
+	bSplinePt** P = new bSplinePt * [size]; //points warper
+
+	std::cout << "A is: " << A << "; B is: " << B << ";\n";
+	vertex** Q = new vertex * [size];
+	for (UINT i = 0; i < size; ++i)
+	{
+		P[i] = new bSplinePt[size];
+
+		Q[i] = new vertex[size];
+		for (UINT j = 0; j < size; ++j)
+		{
+			Q[i][j].Color = vec4(0, 1, 0, 1);
+			P[i][j].pt = &Q[i][j];
+		}
+	}
+
+	UINT dim = 2;
+	double** W = new double* [dim]; //Jakobian
+	double** invW = new double* [dim]; //inverse
+	for (UINT i = 0; i < dim; ++i)
+	{
+		W[i] = new double[dim];
+		invW[i] = new double[dim];
+	}
+	UINT err_ct = 0;
+
+	double cycle_step = 1. / (size - 1);
+
+	//Generating initial lines
+	for (UINT i = 0; i < size; ++i)
+	{
+		if (isU1)
+		{
+			P[0][i].u = u1;
+			P[0][i].v = i * cycle_step;
+		}
+		else
+		{
+			P[0][i].u = i * cycle_step;
+			P[0][i].v = v1;
+		}
+		if (isU2)
+		{
+			P[i][0].u = u2;
+			P[i][0].v = i * cycle_step;
+		}
+		else
+		{
+			P[i][0].u = i * cycle_step;
+			P[i][0].v = v2;
+		}
+		Q[0][i] = SurfacePoint(sfI, P[0][i].u, P[0][i].v);
+		Q[i][0] = SurfacePoint(sfI, P[i][0].u, P[i][0].v);
+	}
+
+	double delta_u = 0.01;
+
+	for (UINT i = 0; i < size - 1; ++i)
+	{
+		for (UINT j = 0; j < size - 1/*size - 1*/; ++j)
+		{
+			if ((P[i][j].u < 0) || (P[i][j + 1].u < 0) || (P[i + 1][j].u < 0))
+				continue;
+
+			bSplinePt* ptIJ = &P[i + 1][j + 1];
+			bSplinePt* ptIm1J = &P[i][j + 1];
+			bSplinePt* ptIJm1 = &P[i + 1][j];
+
+			ptIJ->u = (ptIJm1->u + ptIm1J->u) / 2;//ptIJm1->u;
+			ptIJ->v = max(ptIJm1->v, ptIm1J->v);// ptIJm1->v - 2* delta_u;
+			if ((ptIJ->u == ptIJm1->u) && (ptIJ->v == ptIJm1->v) || (ptIJ->u == ptIm1J->u) && (ptIJ->v == ptIm1J->v))
+			{
+				ptIJ->u = (ptIJm1->u + ptIm1J->u) / 2;
+			}
+			if (ptIJ->u > 1) ptIJ->u -= 2 * delta_u;
+			if (ptIJ->v > 1) ptIJ->v -= 2 * delta_u;
+			if (ptIJ->u < 0) ptIJ->u = (ptIJm1->u + ptIm1J->u) / 2;//0;
+			if (ptIJ->v < 0) ptIJ->v = min(ptIJm1->v, ptIm1J->v);// 0;// 1 + ptIJ->v;
+
+			(*ptIJ->pt) = SurfacePoint(sfI, ptIJ->u, ptIJ->v);
+
+#ifdef _DEBUG
+			std::cout << "\ti:" << i << "; j:" << j << "\n";
+#endif
+
+			
+			if (!getBSplineDrapPoint(W, invW, ptIJ, ptIm1J, ptIJm1, sfI))
+			{
+#ifdef _DEBUG
+				std::cout << "\tu:" << ptIJ->u << "; v:" << ptIJ->v << "\n";
+				std::cout << "\tx:" << ptIJ->pt->pos.x << "; y:" << ptIJ->pt->pos.y << "; z:" << ptIJ->pt->pos.z << "\n";
+				std::cout << "Distance XJ, X_1J: " << getDistance(ptIJ->pt->pos, ptIm1J->pt->pos) << "\n";
+				std::cout << "Distance XJ, XJ_1: " << getDistance(ptIJ->pt->pos, ptIJm1->pt->pos) << "\n";
+#endif
+				ptIJ->u = -1;
+				ptIJ->v = -1;
+				++err_ct;
+				std::cout << err_ct << "\n";
+				std::cout << "\ti:" << i << "; j:" << j << "\n";
+			}
+			else
+			{ 
+#ifdef _DEBUG
+				std::cout << "\tu:" << ptIJ->u << "; v:" << ptIJ->v << "\n";
+				std::cout << "\tx:" << ptIJ->pt->pos.x << "; y:" << ptIJ->pt->pos.y << "; z:" << ptIJ->pt->pos.z << "\n";
+				std::cout << "Distance XJ, X_1J: " << getDistance(ptIJ->pt->pos, ptIm1J->pt->pos) << "\n";
+				std::cout << "Distance XJ, XJ_1: " << getDistance(ptIJ->pt->pos, ptIJm1->pt->pos) << "\n";
+#endif
+			}
+			ptIJ->pt->Color = vec4(0, 1, 0, 1);
+		}
+	}
+	std::cout << "\nDrapping errors: " << err_ct << "\n";
+
+
+	vertex* triangle = new vertex[3];
+	for (UINT i = 0; i < size - 1; ++i)
+	{
+		for (UINT j = 0; j < size - 1; ++j)
+		{
+			if ((P[i][j].u < 0) || (P[i][j + 1].u < 0) || (P[i + 1][j].u < 0))
+				continue;
+			float angle = getAngle(Q, i, j, i + 1, j, i, j + 1);
+			float red, green, blue, coeff;
+			coeff = 1;
+			if (angle < 90)
+				red = 1 - angle * coeff / 90;
+			else
+				red = 0;
+			if (angle > 90)
+			{
+				green = 1 - (angle - 90) * coeff / 90;
+				blue = (angle - 90) * coeff / 90;
+			}
+			else
+			{
+				green = angle * coeff / 90;
+				blue = 0;
+			}
+
+			triangle[0] = Q[i][j];
+			triangle[1] = Q[i][j + 1];
+			triangle[2] = Q[i + 1][j];
+			triangle[0].normal = calculateTriangleNormal(Q[i][j], Q[i][j + 1], Q[i + 1][j]);
+			triangle[1].normal = triangle[0].normal;
+			triangle[2].normal = triangle[0].normal;
+
+			triangle[0].Color = vec4(red, green, blue, 1);
+			triangle[1].Color = vec4(red, green, blue, 1);
+			triangle[2].Color = vec4(red, green, blue, 1);
+			_rs->drawTriangle(triangle);
+		}
+	}
+	for (UINT i = 0; i < size - 1; ++i)
+	{
+		for (UINT j = 0; j < size - 1; ++j)
+		{
+			float angle = getAngle(Q, i + 1, j + 1, i + 1, j, i, j + 1);
+			float red, green, blue, coeff;
+			coeff = 1;
+			if (angle < 90)
+				red = 1 - angle * coeff / 90;
+			else
+				red = 0;
+			if (angle > 90)
+			{
+				green = 1 - (angle - 90) * coeff / 90;
+				blue = (angle - 90) * coeff / 90;
+			}
+			else
+			{
+				green = angle * coeff / 90;
+				blue = 0;
+			}
+
+
+			vertex* triangle = new vertex[3];
+			if ((P[i + 1][j + 1].u < 0) || (P[i][j + 1].u < 0) || (P[i + 1][j].u < 0))
+				continue;
+			triangle[0] = Q[i + 1][j];
+			triangle[1] = Q[i][j + 1];
+			triangle[2] = Q[i + 1][j + 1];
+			triangle[0].normal = calculateTriangleNormal(Q[i + 1][j], Q[i][j + 1], Q[i + 1][j + 1]);
+			triangle[1].normal = triangle[0].normal;
+			triangle[2].normal = triangle[0].normal;
+
+			triangle[0].Color = vec4(red, green, blue, 1);
+			triangle[1].Color = vec4(red, green, blue, 1);
+			triangle[2].Color = vec4(red, green, blue, 1);
+			_rs->drawTriangle(triangle);
+		}
+	}
+
+
+	for (UINT i = 0; i < size; ++i)
+	{
+		delete[] Q[i];
+		delete[] P[i];
+	}
+	for (UINT i = 0; i < dim; ++i)
+	{
+		delete W[i];
+		delete invW[i];
+	}
+	delete[] Q;
+	delete[] P;
+	delete[] W;
+	delete[] invW;
+}

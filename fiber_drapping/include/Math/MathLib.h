@@ -1,6 +1,6 @@
 #pragma once
 
-#include "DataStructures.h"
+#include "../Render/DataStructures.h"
 #include "Bspline.h"
 
 #include <iostream>

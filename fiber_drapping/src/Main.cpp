@@ -1,9 +1,20 @@
+// This is a personal academic project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
 #define DEBUG_CONSOLE
-#include "Render.h"
+#include "Render/Render.h"
 
-#include "Utils.h"
+#include "Render/Utils.h"
 
 RenderSys rs;
+
+void incrementRenderObjCount()
+{
+	rs.incrementRenderObjCount();
+}
+void decrementRenderObjCount()
+{
+	rs.decrementRenderObjCount();
+}
 
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 
@@ -25,7 +36,6 @@ HRESULT InitWindow(HINSTANCE hInst, int nCmdShow, HWND* hWnd)
 	wc.hbrBackground = (HBRUSH)GetStockObject(WHITE_BRUSH);
 	wc.lpszMenuName = NULL;
 	wc.lpszClassName = name;
-	wc.hIcon = LoadIcon(NULL, IDI_APPLICATION);
 
 	if (!RegisterClassEx(&wc))
 	{
@@ -44,12 +54,77 @@ HRESULT InitWindow(HINSTANCE hInst, int nCmdShow, HWND* hWnd)
 }
 
 
+void createMousePosBanner(POINT mousePt)
+{
+	char* str = new char[100];
+	static TexturedObject* ar[2];
+	static bool initFlag = true;
+	Interface* pInterface = rs.getInterface();
+	
+	if (initFlag)
+	{
+		initFlag = false;
+	}
+	else
+	{
+		pInterface->deleteObject(ar[0]);
+		pInterface->deleteObject(ar[1]);
+	}
+	snprintf(str, 100, "X: %d", mousePt.x);
+	ar[0] = pInterface->makeWord(str, -1, 1, 4, rs.getDevice());
+
+	snprintf(str, 100, "Y: %d", mousePt.y);
+	ar[1] = pInterface->makeWord(str, -1, 0.9, 4, rs.getDevice());
+	pInterface->pushTexturedObject(ar[0]);
+	pInterface->pushTexturedObject(ar[1]);
+	delete[] str;
+}
+
+void createObjectRenderCounter()
+{
+	char* str = new char[100];
+	Interface* pInterface = rs.getInterface();
+	static bool initFlag = true;
+	static Button plus, minus;
+
+	static TexturedObject* ar;
+	if (initFlag)
+	{
+		initFlag = false;
+		float plusX, plusY, minusX, minusY;
+		plusX = -1;
+		plusY = 0.7;
+		TexturedObject* buf = pInterface->makeWord("+", plusX, plusY, 8, rs.getDevice());
+		plus.setObj(buf);
+		plus.setPayload(incrementRenderObjCount);
+		///@todo Bad usage: bound box set arbitrarily. Window width and Height set by public fields of RenderSys, which must be private
+		plus.setCoordinates(plusX, plusY, 50, 50, rs.width, rs.height);
+		pInterface->pushActiveElement(&plus);
+
+		minusX = -0.8;
+		minusY = 0.7;
+		buf = pInterface->makeWord("-", minusX, minusY, 8, rs.getDevice());
+		pInterface->pushActiveElement(&minus);
+		minus.setObj(buf);
+		minus.setPayload(decrementRenderObjCount);
+		minus.setCoordinates(minusX, minusY, 50, 50, rs.width, rs.height);
+	}
+	else
+	{
+		pInterface->deleteObject(ar);
+	}
+	snprintf(str, 100, "Objects count: %d", rs.getRenderCount());
+	ar = pInterface->makeWord(str, -1, 0.8, 4, rs.getDevice());
+	pInterface->pushTexturedObject(ar);
+
+	delete[] str;
+}
 
 int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpCmdLine, int nCmdShow)
 {
 #ifdef DEBUG_CONSOLE
 	if (!AllocConsole()) return 0;
-	freopen("CONOUT$", "w", stdout);
+	FILE* console = freopen("CONOUT$", "w", stdout);
 #endif
 
 	HWND hWnd;
@@ -102,7 +177,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpCmdLine, int nCmdSh
 
 	rs.CleanupDevice();
 
-
+	fclose(console);
 	return msg.wParam;
 }
 
@@ -118,6 +193,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
 		case WM_PAINT:
 		{
+			createObjectRenderCounter();
 			hDC = BeginPaint(hWnd, &ps);
 			EndPaint(hWnd, &ps);
 			break;
@@ -170,7 +246,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		}
 		case WM_LBUTTONUP:
 		{
+			POINT pt;
+			pt.x = LOWORD(lParam);
+			pt.y = HIWORD(lParam);
+			rs.getInterface()->SendClick(pt);
 			rs.getMouse()->updLK(false);
+			createObjectRenderCounter();
 			break;
 		}
 		case WM_RBUTTONUP:
@@ -183,7 +264,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			POINT pt;
 			pt.x = LOWORD(lParam);
 			pt.y = HIWORD(lParam);
-			rs.getMouse()->updMousePos(pt);
+			rs.getMouse()->updMousePos(pt); 
+			createMousePosBanner(pt);
 			break;
 		}
 		case WM_SIZE:
