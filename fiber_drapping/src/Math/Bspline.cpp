@@ -588,7 +588,7 @@ d_vertex SurfacePoint(surfInfo* sfI, double u, double v)
 	return S;
 }
 
-d_vertex** SurfaceDerivsAlg1(surfInfo* sfI, double u, double v, size_t d)
+d_vertex** SurfaceDerivsAlg1(const surfInfo* sfI, double u, double v, size_t d)
 {
 	d_vertex** SKL = new d_vertex * [d + 1];
 	for (size_t i = 0; i < d + 1; ++i) SKL[i] = new d_vertex[d + 1];

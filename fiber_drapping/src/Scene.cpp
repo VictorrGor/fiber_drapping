@@ -378,7 +378,10 @@ void testPlane(RenderSys* _rs, ID3D11Device* _pDevice, ID3D11VertexShader* _pVxS
 	_rs->drawLineOnBSplineSurface(&si, 0, 0, false);
 	_rs->drawLineOnBSplineSurface(&si, 0, 0.5, true);
 
-	drappingInit is = { &si, 0, 0.5, true, 0, 0, false, 1., 1. };
+	size_t gird_size = 6;
+	double A = 1. / (gird_size-1);
+	double B = 1. / (gird_size-1);
+	drappingInit is = { &si, 0, 0.5, true, 0, 0, false, A, B, gird_size};
 	drapping_part(_rs, is);
 
 }

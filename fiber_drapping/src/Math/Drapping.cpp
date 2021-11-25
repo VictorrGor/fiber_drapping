@@ -2,13 +2,13 @@
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
 #include "../Math/Drapping.h"
 
-void getF(double* f, const d_vertex* ptIJ, const d_vertex* ptIm1J, const d_vertex* ptIJm1)
+void getF(double* f, const d_vertex* ptIJ, const d_vertex* ptIm1J, const d_vertex* ptIJm1, double A, double B)
 {
 	f[0] = -(pow((ptIJ->x - ptIm1J->x), 2) + pow((ptIJ->y - ptIm1J->y), 2) + pow((ptIJ->z - ptIm1J->z), 2) - pow(A, 2));
 	f[1] = -(pow((ptIJ->x - ptIJm1->x), 2) + pow((ptIJ->y - ptIJm1->y), 2) + pow((ptIJ->z - ptIJm1->z), 2) - pow(B, 2));
 }
 
-bool getBSplineDrapPoint(double** W, double** invW, bSplinePt* ptIJ, bSplinePt* ptIm1J, bSplinePt* ptIJm1, surfInfo* sfI)
+bool getBSplineDrapPoint(double** W, double** invW, drappingCell& cell)
 {
 	const size_t maxIterCt = 10000;
 	bool flag = true;
@@ -34,46 +34,46 @@ bool getBSplineDrapPoint(double** W, double** invW, bSplinePt* ptIJ, bSplinePt* 
 		corrupted = false;
 		//(*ptIJ->pt) = SurfacePoint(sfI, ptIJ->u, ptIJ->v);
 
-		d_vertex** IJder = SurfaceDerivsAlg1(sfI, ptIJ->u, ptIJ->v, 1);
-		getJakobain(W, ptIJ, ptIm1J, ptIJm1, IJder);
-		getF(f, ptIJ->pt, ptIm1J->pt, ptIJm1->pt);///@todo Optimize memory using. At each iteration memory allocation happens. It too much heavy
+		d_vertex** IJder = SurfaceDerivsAlg1(cell.si->sfI, cell.ptIJ->u, cell.ptIJ->v, 1);
+		getJakobain(W, cell.ptIJ, cell.ptIm1J, cell.ptIJm1, IJder);
+		getF(f, cell.ptIJ->pt, cell.ptIm1J->pt, cell.ptIJm1->pt, cell.si->A, cell.si->B);///@todo Optimize memory using. At each iteration memory allocation happens. It too much heavy
 		
 		//std::cout << "\n f is: " << f[0] << "\n" << f[1] << "\n";
 
 		LUDecomposition(W, dim, &L, &U);
 		dx = LUForwardBackward(L, U, f, 2);
-		dx[0] *= 0.1;
-		dx[1] *= 0.1;
+		dx[0] *= 0.01;
+		dx[1] *= 0.01;
 		//if ((ptIJ->u + dx[0] < 0) || (ptIJ->v + dx[1] < 0) || (ptIJ->u + dx[0] > 1) || (ptIJ->v + dx[1] > 1)) corrupted = true;
-		d_vertex oldPoint = *(ptIJ->pt);
+		d_vertex oldPoint = *(cell.ptIJ->pt);
 		
-		if (ptIJ->v + dx[1] < 0)
+		if (cell.ptIJ->v + dx[1] < 0)
 		{
 			dx[1] = 0;
-			ptIJ->v = 0;
+			cell.ptIJ->v = 0;
 		}
 		else
-			if (ptIJ->v + dx[1] > 1)
+			if (cell.ptIJ->v + dx[1] > 1)
 			{
 				dx[1] = 0;
-				ptIJ->v = 1;
+				cell.ptIJ->v = 1;
 			}
-		if (ptIJ->u + dx[0] < 0)
+		if (cell.ptIJ->u + dx[0] < 0)
 		{
 			dx[0] = 0;
-			ptIJ->u = 0;
+			cell.ptIJ->u = 0;
 		}
 		else
-			if (ptIJ->u + dx[0] > 1)
+			if (cell.ptIJ->u + dx[0] > 1)
 			{
 				dx[0] = 0;
-				ptIJ->u = 1;
+				cell.ptIJ->u = 1;
 			}
 
 			
-		ptIJ->u += dx[0];
-		ptIJ->v += dx[1];
-		(*ptIJ->pt) = SurfacePoint(sfI, ptIJ->u, ptIJ->v);
+		cell.ptIJ->u += dx[0];
+		cell.ptIJ->v += dx[1];
+		(*cell.ptIJ->pt) = SurfacePoint(cell.si->sfI, cell.ptIJ->u, cell.ptIJ->v);
 		
 
 		for (size_t ct1 = 0; ct1 < dim; ++ct1)
@@ -85,7 +85,7 @@ bool getBSplineDrapPoint(double** W, double** invW, bSplinePt* ptIJ, bSplinePt* 
 		delete[] dx;
 		delete[] IJder;
 
-		if ((f[0] <= A * epsilon) && (f[1] <= B * epsilon) && !corrupted)
+		if ((f[0] <= cell.si->A * epsilon) && (f[1] <= cell.si->B * epsilon) && !corrupted)
 		//if ((fabs(f[0]) < 0.01) && (fabs(f[1]) < 0.01))
 		{
 			flag = false;
@@ -133,10 +133,10 @@ double getAngle(const d_vertex* const* gird, size_t i, size_t j, size_t p, size_
 
 void drapping_part(RenderSys* _rs, const drappingInit& _is)
 {
-	UINT size = GIRD_SIZE;
+	UINT size = _is.gird_size;
 	bSplinePt** P = new bSplinePt * [size]; //points warper
 
-	std::cout << "A is: " << A << "; B is: " << B << ";\n";
+	std::cout << "A is: " << _is.A << "; B is: " << _is.B << ";\n";
 	d_vertex** Q = new d_vertex * [size];
 	for (UINT i = 0; i < size; ++i)
 	{
@@ -189,6 +189,7 @@ void drapping_part(RenderSys* _rs, const drappingInit& _is)
 	}
 
 	double delta_u = 0.01;
+	drappingCell cell = { nullptr, nullptr, nullptr, &_is };
 
 	for (UINT i = 0; i < size - 1; ++i)
 	{
@@ -200,6 +201,10 @@ void drapping_part(RenderSys* _rs, const drappingInit& _is)
 			bSplinePt* ptIJ = &P[i + 1][j + 1];
 			bSplinePt* ptIm1J = &P[i][j + 1];
 			bSplinePt* ptIJm1 = &P[i + 1][j];
+			
+			cell.ptIJ = ptIJ;
+			cell.ptIJm1 = ptIJm1;
+			cell.ptIm1J = ptIm1J;
 
 			ptIJ->u = (ptIJm1->u + ptIm1J->u) / 2;//ptIJm1->u;
 			ptIJ->v = max(ptIJm1->v, ptIm1J->v);// ptIJm1->v - 2* delta_u;
@@ -219,7 +224,7 @@ void drapping_part(RenderSys* _rs, const drappingInit& _is)
 #endif
 
 			
-			if (!getBSplineDrapPoint(W, invW, ptIJ, ptIm1J, ptIJm1, _is.sfI))
+			if (!getBSplineDrapPoint(W, invW, cell))
 			{
 #ifdef _DEBUG
 				std::cout << "\tu:" << ptIJ->u << "; v:" << ptIJ->v << "\n";
