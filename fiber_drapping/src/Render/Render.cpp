@@ -407,28 +407,6 @@ HRESULT RenderSys::InitObjects()
 	return hRes;
 }
 
-HRESULT RenderSys::drawSpline(splineInfo _info)
-{
-	HRESULT hRes = S_OK;
-	UINT offset = 0;
-	UINT stride = sizeof(vertex);
-
-	vertex* points = _info.controlPoints;
-	double* knots = _info.knotVector;
-
-	vertex* pt = makeBSpline(100, 3, _info);
-
-	Object* obj = new Object(g_pd3dDevice, pVxSh, pPxSh, 100, pt, D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP);
-	objects.push_back(obj);
-	//hRes = drawBigPoints(points, info.cpCount, 0.01);
-/*
-		delete[] pt;
-		delete[] knots;
-		delete[] points;*/
-
-	return hRes;
-}
-
 HRESULT RenderSys::drawTriangle(vertex* _pt)
 {
 	HRESULT hRes = S_OK;

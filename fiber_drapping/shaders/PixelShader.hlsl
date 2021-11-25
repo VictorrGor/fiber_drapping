@@ -81,7 +81,7 @@ float4 main(VS_INPUT input) : SV_Target
 		return  float4(res, 1.0f);
 	}
 
-//@todo Add various pixel shaders for lighting and for vertex color rendering
+///@todo Add various pixel shaders for lighting and for vertex color rendering
 /*
 	float4 staticAmbient = float4(0.2, 0.2, 0.2, 1);
 	float4 staticSpecular = float4(1, 1, 1, 1);

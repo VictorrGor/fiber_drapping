@@ -2,75 +2,52 @@
 
 #include <DirectXMath.h>
 #include <iomanip>
-#include "../Render/DataStructures.h"
+#include <Render/RenderStructures.h>
+#include <Math/MathStructures.h>
 #include "MathLib.h"
 #include "fstream"
 
 //#define LOG_ON
 
-extern size_t splineDegree;
 
 //this func uses first derivation
-splineInfo addInterpolationSpline(vertex* vtx, size_t pointCount);
-void getInterpolationKnotVector(size_t pointCount, double* forwardU, double* backwardU, size_t knotVectorSize, vertex* vtx);
+splineInfo addInterpolationSpline(d_vertex* vtx, size_t pointCount, size_t splineDegree);
+void getInterpolationKnotVector(size_t pointCount, double* forwardU, double* backwardU, size_t knotVectorSize, d_vertex* vtx, size_t splineDegree);
 void BasisFuncs(size_t _i, double _u, size_t _p, double * _knots, double* pRes);
 //_n - control points count, +p - spline degree, _u - param, _knot - knot, _knotSize - knot size
 size_t FindSpan(size_t _n, size_t _p, double _u, double * _knot, size_t _knotSize);
 double* makeKnotVector(size_t _ptCount, size_t _q);
-vertex CurvePoint(splineInfo _spI, size_t _p, double _u);
-vertex* makeBSpline(size_t _vxCount, size_t _p, splineInfo _spI);
-vertex* getDerivatePoints(size_t _ptCount, vertex* vtx);
+d_vertex CurvePoint(splineInfo _spI, size_t _p, double _u);
+///Return vertex[_vxCount] array generated as BSpline gird
+d_vertex* makeBSpline(size_t _vxCount, size_t _p, splineInfo _spI);
+///@todo Deprocated. Set 0-derivates at point 
+d_vertex* getDerivatePoints(size_t _ptCount, d_vertex* vtx);
 double** DersBasisFuns(size_t i, double u, int p, int n, double* U);
-vertex* CurveDerivateAlg1(splineInfo spi, size_t p, double u, size_t d);
+d_vertex* CurveDerivateAlg1(splineInfo spi, size_t p, double u, size_t d);
 
 // (n+1)*(m+1) - data points sizes, Q - points 
 //p, q - degree spline surface
 //uk, vl - knot vectors
-void SurfMeshParams(size_t n, size_t m, vertex** Q, double** uk, double** vl);
-
-//A - q*q square matrix
-void LUDecomposition(double** A, size_t q, double*** L, double*** U);
-
-// b - right-handed sizde
-double* LUForwardBackward(double** L, double** U, double* b, size_t q);
+void SurfMeshParams(size_t n, size_t m, d_vertex** Q, double** uk, double** vl);
 
 
-float* getVxCoordByPosNum(vertex& vx, size_t num);
+
+double* getVxCoordByPosNum(d_vertex& vx, size_t num);
 
 //p - degree
 //r - axises count
-vertex* interpolateCurve(vertex* vtx, size_t vtx_ct, size_t p = 3, double* uk = nullptr, double* U = nullptr, size_t r = 3);
+d_vertex* interpolateCurve(d_vertex* vtx, size_t vtx_ct, size_t p = 3, double* uk = nullptr, double* U = nullptr, size_t r = 3);
 
 //size m = n + p
 double* computeKnotVector(double* _u, size_t p, size_t n);
 
-vertex* testSpline();
-
-vertex** transposeMatrix(vertex** mx, size_t n, size_t m);
-
 //mx - transposed m*n matrix, vec - m size vector;  idx -colomn index for saveing row
-void saveAsTransponsed(vertex** mx, size_t n, size_t m, size_t idx, vertex* vec);
+void saveAsTransponsed(d_vertex** mx, size_t n, size_t m, size_t idx, d_vertex* vec);
 
 //Q - n*m vertex array; p, q - spline degree; 
-surfInfo GenInterpBSplineSurface(size_t n, size_t m, vertex** Q, size_t p, size_t q);
+surfInfo GenInterpBSplineSurface(size_t n, size_t m, d_vertex** Q, size_t p, size_t q);
 
-vertex SurfacePoint(surfInfo* sfI, double u, double v);
+d_vertex SurfacePoint(surfInfo* sfI, double u, double v);
 
 //d - derivaion degree
-vertex** SurfaceDerivsAlg1(surfInfo* sfI, double u, double v, size_t d);
-
-double getSplineLen(double _left, double _right, vertex*(*ffunc)(splineInfo, size_t, double, size_t), splineInfo _spi, size_t _p = 3, size_t n = 100);
-
-//Eqs 6.69 (NURBS Book)
-//m - approximation control points
-//n - initial curve control points
-void getKnotForApproximationSurf(double* U, double* ub, int m, int n, int p);
-
-//Let Q(r, s) - set of control points to be approximated by (p,q) nonrational surface V with (n)*(m) control points
-void GlobalAproximationBSpline(int r, int  s, vertex** const Q, int p, int q, int n, int m, double** U, double**  V, vertex*** P);
-
-void makeNAproximateionMatrix(double*** N, double* u, int n, int m, int p, int u_size);
-
-//Let Q(r, s) - set of control points to be approximated by (p,q) nonrational surface V with (n)*(m) control points
-surfInfo BSplineSurface(int r, int s, vertex** const Q, int p, int q, double** U, double** V, vertex*** P, int u_pt_cnt, int v_pt_cnt);
-
+d_vertex** SurfaceDerivsAlg1(surfInfo* sfI, double u, double v, size_t d);

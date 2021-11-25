@@ -1,12 +1,15 @@
 #pragma once
 #include <d3d11.h>
 #include <DirectXMath.h>
+#include "Math/MathStructures.h"
 #pragma pack(1)
 
 using namespace DirectX;
 
 typedef XMFLOAT3 vec3;
 typedef XMFLOAT4 vec4;
+
+class d_vertex;
 
 struct vertex
 {
@@ -15,13 +18,9 @@ struct vertex
 	vec3 normal;
 
 	double getLength();
-	vertex()
-	{
-		pos = vec3(0, 0, 0);
-		Color = vec4(0, 0, 0, 0);
-		normal = vec3(0, 0, 0);
-	}
+	vertex();
 	vertex(const vertex& _obj);
+	vertex(const d_vertex& _obj);
 	vertex& operator=(const vertex& _vx);
 	vertex& operator+=(const vertex& _vx);
 	//vetrex& ope

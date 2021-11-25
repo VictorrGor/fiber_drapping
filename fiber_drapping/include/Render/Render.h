@@ -14,18 +14,13 @@
 
 #include "Input/Mouse.h"
 
-#include "DataStructures.h"
+#include "RenderStructures.h"
 #include "DDSTextureLoader.h"
 #include "Object.h"
 #include "Interface.h"
 #include "Scene.h"
 
 extern std::ofstream file;
-
-//TODO
-//Вернуть в addSpline уборщик мусора!!
-// Вернуть в addInterpolationSpline уборщик мусора!!
-//Починить функцию рисования больших точек
 
 using namespace DirectX;
 
@@ -179,7 +174,6 @@ public:
 	Interface* getInterface();
 	ID3D11Device* getDevice();
 	
-	HRESULT drawSpline(splineInfo _info);
 	//u, v - parametric coordinates. isU - is true if u - const coordinate. 
 	void drawLineOnBSplineSurface(surfInfo* sfi, double u, double v, bool isU);
 

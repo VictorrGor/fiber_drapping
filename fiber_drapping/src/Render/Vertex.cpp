@@ -10,6 +10,13 @@ vertex::vertex(const vertex& _obj)
 	normal = _obj.normal;
 }
 
+vertex::vertex(const d_vertex& _obj)
+{
+	pos = { static_cast<float>(_obj.x), static_cast<float>(_obj.y) , static_cast<float>(_obj.z) };
+	Color = vec4(0, 0, 0, 1);
+	normal = vec3(0, 0, 0);
+}
+
 vertex& vertex::operator=(const vertex& _vx)
 {
 	pos = _vx.pos;
@@ -117,6 +124,13 @@ vec3 sqrt(const vec3& _vx)
 double vertex::getLength()
 {
 	return sqrt(pow(pos.x, 2) + pow(pos.y, 2) + pow(pos.z, 2));
+}
+
+vertex::vertex()
+{
+	pos = vec3(0, 0, 0);
+	Color = vec4(0, 0, 0, 0);
+	normal = vec3(0, 0, 0);
 }
 
 double getLength(const vec3& pos)

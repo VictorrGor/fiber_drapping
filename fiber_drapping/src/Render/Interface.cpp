@@ -3,7 +3,7 @@
 #include "../Render/Interface.h"
 
 
-HRESULT Interface::initCharMap(const char* filename)//@todo needs testing
+HRESULT Interface::initCharMap(const char* filename)///@todo needs testing
 {
 	FILE* f;
 	f = fopen(filename, "rb");

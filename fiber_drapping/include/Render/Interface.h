@@ -8,7 +8,7 @@
 #include <iostream>
 #include <fstream>
 
-#include "DataStructures.h"
+#include "RenderStructures.h"
 #include "Object.h"
 
 using namespace DirectX;

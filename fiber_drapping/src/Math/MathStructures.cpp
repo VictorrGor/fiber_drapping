@@ -1,6 +1,6 @@
 // This is a personal academic project. Dear PVS-Studio, please check it.
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
-#include "Render/DataStructures.h"
+#include <Math/MathStructures.h>
 
 
 splineInfo::splineInfo()
@@ -12,11 +12,11 @@ splineInfo::splineInfo()
 	knotLength = 0;
 }
 
-splineInfo::splineInfo(const splineInfo & _spI)
+splineInfo::splineInfo(const splineInfo& _spI)
 {
 	cpCount = _spI.cpCount;
 	knotLength = _spI.knotLength;
-	controlPoints = new vertex[cpCount];
+	controlPoints = new d_vertex[cpCount];
 	knotVector = new double[knotLength];
 	forwardU = new double[cpCount];
 
@@ -31,7 +31,7 @@ splineInfo::splineInfo(const splineInfo & _spI)
 	}
 }
 
-splineInfo& splineInfo::operator=(const splineInfo & _spI)
+splineInfo& splineInfo::operator=(const splineInfo& _spI)
 {
 
 	if (controlPoints) delete[] controlPoints;
@@ -40,7 +40,7 @@ splineInfo& splineInfo::operator=(const splineInfo & _spI)
 
 	cpCount = _spI.cpCount;
 	knotLength = _spI.knotLength;
-	controlPoints = new vertex[cpCount];
+	controlPoints = new d_vertex[cpCount];
 	knotVector = new double[knotLength];
 	forwardU = new double[cpCount];
 
@@ -62,24 +62,13 @@ splineInfo::~splineInfo()
 	if (controlPoints) delete[] controlPoints;
 	if (knotVector) delete[] knotVector;
 	if (forwardU) delete[] forwardU;
-	
+
 	controlPoints = nullptr;
 	forwardU = nullptr;
 	knotVector = nullptr;
 
 	cpCount = 0;
 	knotLength = 0;
-}
-
-
-vertex* convert2DimArrayTo1(vertex** mx, UINT n, UINT m)
-{
-	vertex* res = new vertex[n * m];
-	for (UINT i = 0; i < n; ++i)
-		for (UINT j = 0; j < m; ++j)
-			res[i * m + j] = mx[i][j];
-
-	return res;
 }
 
 
@@ -104,6 +93,7 @@ surfInfo::~surfInfo()
 	if (Vl) delete Vl;
 }
 
+///@todo Strange if statment - data copy will happen only if copied object has not controlPoints!=nullptr 
 surfInfo::surfInfo(const surfInfo& obj)
 {
 	this->controlPoints = nullptr;
@@ -116,12 +106,12 @@ surfInfo::surfInfo(const surfInfo& obj)
 	this->q = obj.q;
 	if (obj.controlPoints)
 	{
-		this->controlPoints = new vertex*[this->n];
+		this->controlPoints = new d_vertex * [this->n];
 		for (size_t i = 0; i < this->n; ++i)
 		{
 			if (obj.controlPoints[i])
 			{
-				this->controlPoints[i] = new vertex[this->m];
+				this->controlPoints[i] = new d_vertex[this->m];
 				for (size_t j = 0; j < this->m; ++j) this->controlPoints[i][j] = obj.controlPoints[i][j];
 			}
 			else throw "surfaceInfo: incorrect obj!";
@@ -164,12 +154,12 @@ surfInfo& surfInfo::operator=(const surfInfo& obj)
 	this->q = obj.q;
 	if (obj.controlPoints)
 	{
-		this->controlPoints = new vertex * [this->n];
+		this->controlPoints = new d_vertex * [this->n];
 		for (size_t i = 0; i < this->n; ++i)
 		{
 			if (obj.controlPoints[i])
 			{
-				this->controlPoints[i] = new vertex[this->m];
+				this->controlPoints[i] = new d_vertex[this->m];
 				for (size_t j = 0; j < this->m; ++j) this->controlPoints[i][j] = obj.controlPoints[i][j];
 			}
 			else throw "surfaceInfo: incorrect obj!";
@@ -190,8 +180,8 @@ surfInfo& surfInfo::operator=(const surfInfo& obj)
 	return *this;
 }
 
-surfInfo::surfInfo(vertex** cp, size_t _n, size_t _m, size_t _p, size_t _q, double* _Uk, double* _Vl) : controlPoints(cp),
-	n(_n), m(_m), p(_p), q(_q), Uk(_Uk), Vl(_Vl)
+surfInfo::surfInfo(d_vertex** cp, size_t _n, size_t _m, size_t _p, size_t _q, double* _Uk, double* _Vl) : controlPoints(cp),
+n(_n), m(_m), p(_p), q(_q), Uk(_Uk), Vl(_Vl)
 {
 }
 
@@ -204,7 +194,7 @@ bSplinePt::bSplinePt()
 
 bSplinePt::bSplinePt(const bSplinePt& _obj)
 {
-	
+
 	this->pt = _obj.pt;
 	this->u = _obj.u;
 	this->v = _obj.v;
@@ -215,7 +205,7 @@ bSplinePt::~bSplinePt()
 	this->pt = nullptr;
 }
 
-bSplinePt::bSplinePt(vertex* _pt, double _u, double _v): pt(_pt), u(_u), v(_v)
+bSplinePt::bSplinePt(d_vertex* _pt, double _u, double _v) : pt(_pt), u(_u), v(_v)
 {
 }
 
@@ -224,5 +214,52 @@ bSplinePt& bSplinePt::operator=(const bSplinePt& obj)
 	this->pt = obj.pt;
 	this->u = obj.u;
 	this->v = obj.v;
+	return *this;
+}
+
+d_vertex operator*(const double& _s, const d_vertex& _obj)
+{
+	return d_vertex(_obj.x * _s, _obj.y * _s, _obj.z * _s);
+}
+
+d_vertex operator*(const d_vertex& _obj, const double& _s)
+{
+	return d_vertex(_obj.x * _s, _obj.y * _s, _obj.z * _s);
+}
+
+d_vertex operator+(const d_vertex& _obj1, const d_vertex& _obj2)
+{
+	return d_vertex(_obj1.x + _obj2.x, _obj1.y + _obj2.y, _obj1.z + _obj2.z);
+}
+
+d_vertex operator-(const d_vertex& _obj1, const d_vertex& _obj2)
+{
+	return d_vertex(_obj1.x - _obj2.x, _obj1.y - _obj2.y, _obj1.z - _obj2.z);
+}
+
+d_vertex operator/(const d_vertex& _obj, const double& _s)
+{
+	return d_vertex(_obj.x / _s, _obj.y / _s, _obj.z / _s);
+}
+
+double getDistance(const d_vertex& _obj1, const d_vertex& _obj2)
+{
+	return sqrt(pow((_obj1.x - _obj2.x), 2) + pow((_obj1.y - _obj2.y), 2) + pow((_obj1.z - _obj2.z), 2));
+}
+
+vec3 subtructAsVec3(const d_vertex& _obj1, const d_vertex& _obj2)
+{
+	return vec3(_obj1.x - _obj2.x, _obj1.y - _obj2.y, _obj1.z - _obj2.z);
+}
+
+d_vertex::d_vertex() :x(0), y(0), z(0) {};
+
+d_vertex::d_vertex(double _x, double _y, double _z) :x(_x), y(_y), z(_z) {}
+
+d_vertex& d_vertex::operator+=(const d_vertex& _obj)
+{
+	x += _obj.x;
+	y += _obj.y;
+	z += _obj.z;
 	return *this;
 }

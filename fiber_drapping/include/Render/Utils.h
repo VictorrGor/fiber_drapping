@@ -2,7 +2,7 @@
 #include <Windows.h>
 #include <stdio.h>
 #include <iostream>
-#include "DataStructures.h"
+#include <Render/RenderStructures.h>
 
 //Convert text file with texture description to binary
 //Text file format: 
@@ -49,7 +49,7 @@ void convertTextInfoFileToBin(const char* filename_txt, const char* filename_bin
 
 	char delim = ' ';
 
-	//@todo Delete multiple spaces
+	///@todo Delete multiple spaces
 	while (!feof(text))
 	{
 		fgets(textBuf, 512, text);
