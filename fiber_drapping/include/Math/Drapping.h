@@ -37,7 +37,7 @@ class RenderSys;
 
 ///All lines must start at once point
 ///drappingInit - all initial properties
-void drapping_part(RenderSys* _rs, const drappingInit& _is);
+void makeDrappedGird(RenderSys* _rs, const drappingInit& _is);
 
 //Return angle between lines on surface with nodes (ij, pq) (ij,sh)
 double getAngle(const d_vertex* const* gird, size_t i, size_t j, size_t p, size_t q, size_t s, size_t h);

@@ -131,38 +131,13 @@ double getAngle(const d_vertex* const* gird, size_t i, size_t j, size_t p, size_
 	return angle.m128_f32[0] * 57.2958;
 }
 
-void drapping_part(RenderSys* _rs, const drappingInit& _is)
+
+void generateInitialLines(bSplinePt** P, d_vertex** Q, const drappingInit& _is)
 {
-	UINT size = _is.gird_size;
-	bSplinePt** P = new bSplinePt * [size]; //points warper
 
-	std::cout << "A is: " << _is.A << "; B is: " << _is.B << ";\n";
-	d_vertex** Q = new d_vertex * [size];
-	for (UINT i = 0; i < size; ++i)
-	{
-		P[i] = new bSplinePt[size];
+	double cycle_step = 1. / (_is.gird_size - 1);
 
-		Q[i] = new d_vertex[size];
-		for (UINT j = 0; j < size; ++j)
-		{
-			P[i][j].pt = &Q[i][j];
-		}
-	}
-
-	UINT dim = 2;
-	double** W = new double* [dim]; //Jakobian
-	double** invW = new double* [dim]; //inverse
-	for (UINT i = 0; i < dim; ++i)
-	{
-		W[i] = new double[dim];
-		invW[i] = new double[dim];
-	}
-	UINT err_ct = 0;
-
-	double cycle_step = 1. / (size - 1);
-
-	//Generating initial lines
-	for (UINT i = 0; i < size; ++i)
+	for (UINT i = 0; i < _is.gird_size; ++i)
 	{
 		if (_is.isU1)
 		{
@@ -187,71 +162,10 @@ void drapping_part(RenderSys* _rs, const drappingInit& _is)
 		Q[0][i] = SurfacePoint(_is.sfI, P[0][i].u, P[0][i].v);
 		Q[i][0] = SurfacePoint(_is.sfI, P[i][0].u, P[i][0].v);
 	}
+}
 
-	double delta_u = 0.01;
-	drappingCell cell = { nullptr, nullptr, nullptr, &_is };
-
-	for (UINT i = 0; i < size - 1; ++i)
-	{
-		for (UINT j = 0; j < size - 1; ++j)
-		{
-			if ((P[i][j].u < 0) || (P[i][j + 1].u < 0) || (P[i + 1][j].u < 0))
-				continue;
-
-			bSplinePt* ptIJ = &P[i + 1][j + 1];
-			bSplinePt* ptIm1J = &P[i][j + 1];
-			bSplinePt* ptIJm1 = &P[i + 1][j];
-			
-			cell.ptIJ = ptIJ;
-			cell.ptIJm1 = ptIJm1;
-			cell.ptIm1J = ptIm1J;
-
-			ptIJ->u = (ptIJm1->u + ptIm1J->u) / 2;//ptIJm1->u;
-			ptIJ->v = max(ptIJm1->v, ptIm1J->v);// ptIJm1->v - 2* delta_u;
-			if ((ptIJ->u == ptIJm1->u) && (ptIJ->v == ptIJm1->v) || (ptIJ->u == ptIm1J->u) && (ptIJ->v == ptIm1J->v))
-			{
-				ptIJ->u = (ptIJm1->u + ptIm1J->u) / 2;
-			}
-			if (ptIJ->u > 1) ptIJ->u -= 2 * delta_u;
-			if (ptIJ->v > 1) ptIJ->v -= 2 * delta_u;
-			if (ptIJ->u < 0) ptIJ->u = (ptIJm1->u + ptIm1J->u) / 2;//0;
-			if (ptIJ->v < 0) ptIJ->v = min(ptIJm1->v, ptIm1J->v);// 0;// 1 + ptIJ->v;
-
-			(*ptIJ->pt) = SurfacePoint(_is.sfI, ptIJ->u, ptIJ->v);
-
-#ifdef _DEBUG
-			std::cout << "\ti:" << i << "; j:" << j << "\n";
-#endif
-
-			
-			if (!getBSplineDrapPoint(W, invW, cell))
-			{
-#ifdef _DEBUG
-				std::cout << "\tu:" << ptIJ->u << "; v:" << ptIJ->v << "\n";
-				std::cout << "\tx:" << ptIJ->pt->x << "; y:" << ptIJ->pt->y << "; z:" << ptIJ->pt->z << "\n";
-				std::cout << "Distance XJ, X_1J: " << getDistance(*(ptIJ->pt), *(ptIm1J->pt)) << "\n";
-				std::cout << "Distance XJ, XJ_1: " << getDistance(*(ptIJ->pt), *(ptIJm1->pt)) << "\n";
-#endif
-				ptIJ->u = -1;
-				ptIJ->v = -1;
-				++err_ct;
-				std::cout << err_ct << "\n";
-				std::cout << "\ti:" << i << "; j:" << j << "\n";
-			}
-			else
-			{ 
-#ifdef _DEBUG
-				std::cout << "\tu:" << ptIJ->u << "; v:" << ptIJ->v << "\n";
-				std::cout << "\tx:" << ptIJ->pt->x << "; y:" << ptIJ->pt->y << "; z:" << ptIJ->pt->z << "\n";
-				std::cout << "Distance XJ, X_1J: " << getDistance(*(ptIJ->pt), *(ptIm1J->pt)) << "\n";
-				std::cout << "Distance XJ, XJ_1: " << getDistance(*(ptIJ->pt), *(ptIJm1->pt)) << "\n";
-#endif
-			}
-		}
-	}
-	std::cout << "\nDrapping errors: " << err_ct << "\n";
-
-
+void drawDrappedCell(RenderSys* _rs, bSplinePt** P, d_vertex** Q, size_t size)
+{
 	vertex* triangle = new vertex[3];
 	for (UINT i = 0; i < size - 1; ++i)
 	{
@@ -329,7 +243,100 @@ void drapping_part(RenderSys* _rs, const drappingInit& _is)
 			_rs->drawTriangle(triangle);
 		}
 	}
+}
 
+void makeDrappedGird(RenderSys* _rs, const drappingInit& _is)
+{
+	std::cout << "A is: " << _is.A << "; B is: " << _is.B << ";\n";
+	
+	UINT size = _is.gird_size;
+	bSplinePt** P = new bSplinePt * [size]; //points warper
+	d_vertex** Q = new d_vertex * [size];
+	for (UINT i = 0; i < size; ++i)
+	{
+		P[i] = new bSplinePt[size];
+
+		Q[i] = new d_vertex[size];
+		for (UINT j = 0; j < size; ++j)
+		{
+			P[i][j].pt = &Q[i][j];
+		}
+	}
+	UINT dim = 2;
+	double** W = new double* [dim]; //Jakobian
+	double** invW = new double* [dim]; //inverse
+	for (UINT i = 0; i < dim; ++i)
+	{
+		W[i] = new double[dim];
+		invW[i] = new double[dim];
+	}
+	UINT err_ct = 0;
+	double delta_u = 0.01;
+	drappingCell cell = { nullptr, nullptr, nullptr, &_is };
+
+	generateInitialLines(P, Q, _is);
+
+	for (UINT i = 0; i < size - 1; ++i)
+	{
+		for (UINT j = 0; j < size - 1; ++j)
+		{
+			if ((P[i][j].u < 0) || (P[i][j + 1].u < 0) || (P[i + 1][j].u < 0))
+				continue;
+
+			bSplinePt* ptIJ = &P[i + 1][j + 1];
+			bSplinePt* ptIm1J = &P[i][j + 1];
+			bSplinePt* ptIJm1 = &P[i + 1][j];
+			
+			cell.ptIJ = ptIJ;
+			cell.ptIJm1 = ptIJm1;
+			cell.ptIm1J = ptIm1J;
+
+			ptIJ->u = (ptIJm1->u + ptIm1J->u) / 2;//ptIJm1->u;
+			ptIJ->v = max(ptIJm1->v, ptIm1J->v);// ptIJm1->v - 2* delta_u;
+			if ((ptIJ->u == ptIJm1->u) && (ptIJ->v == ptIJm1->v) || (ptIJ->u == ptIm1J->u) && (ptIJ->v == ptIm1J->v))
+			{
+				ptIJ->u = (ptIJm1->u + ptIm1J->u) / 2;
+			}
+			if (ptIJ->u > 1) ptIJ->u -= 2 * delta_u;
+			if (ptIJ->v > 1) ptIJ->v -= 2 * delta_u;
+			if (ptIJ->u < 0) ptIJ->u = (ptIJm1->u + ptIm1J->u) / 2;//0;
+			if (ptIJ->v < 0) ptIJ->v = min(ptIJm1->v, ptIm1J->v);// 0;// 1 + ptIJ->v;
+
+			(*ptIJ->pt) = SurfacePoint(_is.sfI, ptIJ->u, ptIJ->v);
+
+#ifdef _DEBUG
+			std::cout << "\ti:" << i << "; j:" << j << "\n";
+#endif
+
+			
+			if (!getBSplineDrapPoint(W, invW, cell))
+			{
+#ifdef _DEBUG
+				std::cout << "\tu:" << ptIJ->u << "; v:" << ptIJ->v << "\n";
+				std::cout << "\tx:" << ptIJ->pt->x << "; y:" << ptIJ->pt->y << "; z:" << ptIJ->pt->z << "\n";
+				std::cout << "Distance XJ, X_1J: " << getDistance(*(ptIJ->pt), *(ptIm1J->pt)) << "\n";
+				std::cout << "Distance XJ, XJ_1: " << getDistance(*(ptIJ->pt), *(ptIJm1->pt)) << "\n";
+#endif
+				ptIJ->u = -1;
+				ptIJ->v = -1;
+				++err_ct;
+				std::cout << err_ct << "\n";
+				std::cout << "\ti:" << i << "; j:" << j << "\n";
+			}
+			else
+			{ 
+#ifdef _DEBUG
+				std::cout << "\tu:" << ptIJ->u << "; v:" << ptIJ->v << "\n";
+				std::cout << "\tx:" << ptIJ->pt->x << "; y:" << ptIJ->pt->y << "; z:" << ptIJ->pt->z << "\n";
+				std::cout << "Distance XJ, X_1J: " << getDistance(*(ptIJ->pt), *(ptIm1J->pt)) << "\n";
+				std::cout << "Distance XJ, XJ_1: " << getDistance(*(ptIJ->pt), *(ptIJm1->pt)) << "\n";
+#endif
+			}
+		}
+	}
+	std::cout << "\nDrapping errors: " << err_ct << "\n";
+
+	drawDrappedCell(_rs, P, Q, size);
 
 	for (UINT i = 0; i < size; ++i)
 	{
@@ -346,3 +353,4 @@ void drapping_part(RenderSys* _rs, const drappingInit& _is)
 	delete[] W;
 	delete[] invW;
 }
+
