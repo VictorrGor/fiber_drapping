@@ -18,7 +18,7 @@ bool getBSplineDrapPoint(double** W, double** invW, drappingCell& cell)
 	double* f = new double[dim];
 	double* dx;
 
-	double epsilon = 0.00001; // Варьировать сравнение ошибки в зависимости от накопленной ошибки. Т.е. если накопилась большая ошибка, то уменьшать макисмально взоможную, или прижимать в другую сторону
+	double epsilon = 0.01; // Варьировать сравнение ошибки в зависимости от накопленной ошибки. Т.е. если накопилась большая ошибка, то уменьшать макисмально взоможную, или прижимать в другую сторону
 	double len = 100000;
 	
 	bool corrupted = false;
@@ -42,8 +42,8 @@ bool getBSplineDrapPoint(double** W, double** invW, drappingCell& cell)
 
 		LUDecomposition(W, dim, &L, &U);
 		dx = LUForwardBackward(L, U, f, 2);
-		dx[0] *= 0.01;
-		dx[1] *= 0.01;
+		dx[0] *= 0.1;
+		dx[1] *= 0.1;
 		//if ((ptIJ->u + dx[0] < 0) || (ptIJ->v + dx[1] < 0) || (ptIJ->u + dx[0] > 1) || (ptIJ->v + dx[1] > 1)) corrupted = true;
 		d_vertex oldPoint = *(cell.ptIJ->pt);
 		
@@ -85,7 +85,9 @@ bool getBSplineDrapPoint(double** W, double** invW, drappingCell& cell)
 		delete[] dx;
 		delete[] IJder;
 
-		if ((f[0] <= cell.si->A * epsilon) && (f[1] <= cell.si->B * epsilon) && !corrupted)
+		double bufA = (cell.si->A) * epsilon - cell.accumULen;
+		double bufB = (cell.si->B) * epsilon - cell.accumVLen;
+		if ((f[0] <= (cell.si->A) * epsilon - cell.accumULen) && (f[1] <= (cell.si->B) * epsilon - cell.accumVLen) && !corrupted)
 		//if ((fabs(f[0]) < 0.01) && (fabs(f[1]) < 0.01))
 		{
 			flag = false;
@@ -273,6 +275,12 @@ void makeDrappedGird(RenderSys* _rs, const drappingInit& _is)
 	UINT err_ct = 0;
 	double delta_u = 0.01;
 	drappingCell cell = { nullptr, nullptr, nullptr, &_is };
+	//Length accumalation array by u and v coordinate;
+	size_t accum_size = (size) * (size);
+	double* uAcc = new double[accum_size];
+	double* vAcc = new double[accum_size];
+	memset(uAcc, 0, sizeof(double) * accum_size);
+	memset(vAcc, 0, sizeof(double) * accum_size);
 
 	generateInitialLines(P, Q, _is);
 
@@ -290,6 +298,8 @@ void makeDrappedGird(RenderSys* _rs, const drappingInit& _is)
 			cell.ptIJ = ptIJ;
 			cell.ptIJm1 = ptIJm1;
 			cell.ptIm1J = ptIm1J;
+			cell.accumULen = uAcc[(i + 1) * size + j];
+			cell.accumVLen = vAcc[i * size + j + 1];
 
 			ptIJ->u = (ptIJm1->u + ptIm1J->u) / 2;//ptIJm1->u;
 			ptIJ->v = max(ptIJm1->v, ptIm1J->v);// ptIJm1->v - 2* delta_u;
@@ -307,8 +317,6 @@ void makeDrappedGird(RenderSys* _rs, const drappingInit& _is)
 #ifdef _DEBUG
 			std::cout << "\ti:" << i << "; j:" << j << "\n";
 #endif
-
-			
 			if (!getBSplineDrapPoint(W, invW, cell))
 			{
 #ifdef _DEBUG
@@ -325,32 +333,41 @@ void makeDrappedGird(RenderSys* _rs, const drappingInit& _is)
 			}
 			else
 			{ 
+				uAcc[(i + 1) * size + (j + 1)] = uAcc[(i + 1) * size + j]   + getDistance(*(ptIJ->pt), *(ptIJm1->pt)) - _is.A;
+				vAcc[(i + 1) * size + (j + 1)] = vAcc[i * size + j + 1] + getDistance(*(ptIJ->pt), *(ptIm1J->pt)) - _is.B;
 #ifdef _DEBUG
 				std::cout << "\tu:" << ptIJ->u << "; v:" << ptIJ->v << "\n";
 				std::cout << "\tx:" << ptIJ->pt->x << "; y:" << ptIJ->pt->y << "; z:" << ptIJ->pt->z << "\n";
 				std::cout << "Distance XJ, X_1J: " << getDistance(*(ptIJ->pt), *(ptIm1J->pt)) << "\n";
 				std::cout << "Distance XJ, XJ_1: " << getDistance(*(ptIJ->pt), *(ptIJm1->pt)) << "\n";
-#endif
+				std::cout << "uAccum: " << uAcc[(i + 1) * size + (j + 1)] << "; vAccum: " << vAcc[(i + 1) * size + (j + 1)] << ";\n";
+#endif									   
 			}
 		}
 	}
 	std::cout << "\nDrapping errors: " << err_ct << "\n";
 
+	std::ofstream pFileU, pFileV;
+	pFileU.open("matrixUOut.xls");
+	pFileV.open("matrixVOut.xls");
+	for (int i = 0; i < size; ++i)
+	{
+		for (int j = 0; j < size; ++j)
+		{
+			pFileU << uAcc[i * size + j] << "\t";
+			pFileV << vAcc[i * size + j] << "\t";
+		}
+		pFileU << "\n";
+		pFileV << "\n";
+	}
+	pFileU.close();
+	pFileV.close();
+
 	drawDrappedCell(_rs, P, Q, size);
 
-	for (UINT i = 0; i < size; ++i)
-	{
-		delete[] Q[i];
-		delete[] P[i];
-	}
-	for (UINT i = 0; i < dim; ++i)
-	{
-		delete W[i];
-		delete invW[i];
-	}
-	delete[] Q;
-	delete[] P;
-	delete[] W;
-	delete[] invW;
+	for (UINT i = 0; i < size; ++i) delete[] Q[i], P[i];
+	for (UINT i = 0; i < dim; ++i)  delete W[i], invW[i];
+
+	delete[] Q, P, W, invW, uAcc, vAcc;
 }
 

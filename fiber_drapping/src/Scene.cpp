@@ -346,39 +346,65 @@ void lighting_test(RenderSys* _rs, ID3D11Device* _pDevice, ID3D11VertexShader* _
 
 void testPlane(RenderSys* _rs, ID3D11Device* _pDevice, ID3D11VertexShader* _pVxSh, ID3D11PixelShader* _pPxSh)
 {
-	d_vertex** Q = new d_vertex *[2];
-	for (int i = 0; i < 2; ++i)
+	size_t pointCnt = 10;
+	d_vertex** Q = new d_vertex *[pointCnt];
+	for (int i = 0; i < pointCnt; ++i)
 	{
-		Q[i] = new d_vertex[2];
+		Q[i] = new d_vertex[pointCnt];
+		for (int j = 0; j < pointCnt; ++j)
+		{
+			Q[i][j] = { -0.5 + i * 1. / (pointCnt - 1) , 0, -0.5 + j * 1. / (pointCnt - 1) };
+		}
 	}
-	Q[0][0] = { -0.5, 0, -0.5 };
-	Q[0][1] = { -0.5, 0, 0.5 };
-	Q[1][0] = { 0.5, 0, -0.5 };
-	Q[1][1] = { 0.5, 0, 0.5 };
-	double* uk = new double[4];
-	double* vl = new double[4];
-	uk[0] = 0;
-	uk[1] = 0;
-	uk[2] = 1;
-	uk[3] = 1;
-	vl[0] = 0;
-	vl[1] = 0;
-	vl[2] = 1;
-	vl[3] = 1;
+
+	size_t p = 2;
+	size_t q = 2;
+	double* uk = new double[pointCnt + p];
+	double* vl = new double[pointCnt + q];
+
+
+	double* _uk = new double[pointCnt + p];
+	double* _vl = new double[pointCnt + q];
+	SurfMeshParams(pointCnt, pointCnt, Q, &_uk, &_vl);
+	double* Uk = computeKnotVector(_uk, p, pointCnt);
+	double* Vl = computeKnotVector(_vl, q, pointCnt);
+	size_t m = pointCnt + p + 1;
+	std::cout << "Knot U: \n";
+	for (int i = 0; i < m; ++i) std::cout << Uk[i] << " ";
+	std::cout << "\n";
+	std::cout << "Knot V: \n";
+	for (int i = 0; i < m; ++i) std::cout << Vl[i] << " ";
+	std::cout << "\n";
+
+	//for (size_t i = 0; i <= p; ++i) uk[i] = 0;
+	//for (size_t j = 1; j < pointCnt - p; ++j)
+	//{
+	//	uk[p + j] += (double)(j) / (pointCnt  - p + 1);
+	//}
+	//for (size_t i = m - p - 1; i < m; ++i) uk[i] = 1;
+	////V knot vector init
+	//size_t mv = pointCnt + q + 1;
+	//for (size_t i = 0; i <= q; ++i) vl[i] = 0;
+	//for (size_t j = 1; j < pointCnt - q; ++j)
+	//{
+	//	vl[q + j] += (double)(j) / (pointCnt - q + 1);
+	//}
+	//for (size_t i = m - q - 1; i < m; ++i) vl[i] = 1;
+
 
 	surfInfo si;
 	si.controlPoints = Q;
-	si.m = 2;
-	si.n = 2;
-	si.p = 1;
-	si.q = 1;
-	si.Uk = uk;
-	si.Vl = vl;
+	si.m = pointCnt;
+	si.n = pointCnt;
+	si.p = p;
+	si.q = q;
+	si.Uk = Uk;
+	si.Vl = Vl;
 
 	_rs->drawLineOnBSplineSurface(&si, 0, 0, false);
 	_rs->drawLineOnBSplineSurface(&si, 0, 0.5, true);
 
-	size_t gird_size = 6;
+	size_t gird_size = 10;
 	double A = 1. / (gird_size-1);
 	double B = 1. / (gird_size-1);
 	drappingInit is = { &si, 0, 0.5, true, 0, 0, false, A, B, gird_size};

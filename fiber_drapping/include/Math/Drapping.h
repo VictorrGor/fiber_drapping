@@ -12,7 +12,6 @@
 #include <Math/MathStructures.h>
 
 
-///@todo A B now used from global paramters. GIRD SIZE not specified in drapping initial state
 struct drappingInit {
 	surfInfo* sfI; // Spline surface info
 	double u1;  //Initial u coordinate of first line
@@ -31,6 +30,8 @@ struct drappingCell {
 	bSplinePt* ptIm1J; 
 	bSplinePt* ptIJm1;
 	const drappingInit* si;
+	double accumULen; //accumulated error of edges's length by U coordinate
+	double accumVLen; //accumulated error of edges's length by V coordinate
 };
 
 class RenderSys;
