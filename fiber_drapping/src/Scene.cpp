@@ -304,44 +304,45 @@ void lighting_test(RenderSys* _rs, ID3D11Device* _pDevice, ID3D11VertexShader* _
 //}
 //
 //
-//void generateSurfaceByBSpline(RenderSys* _rs, ID3D11Device* _pDevice, ID3D11VertexShader* _pVxSh, ID3D11PixelShader* _pPxSh)
-//{
-//	int size_n = 10;
-//	int size_m = 10;
-//	vertex** Q = new vertex * [size_n];
-//	for (int i = 0; i < size_n; ++i) Q[i] = new vertex[size_m];
-//	
-//	float step = 1. / size_n;
-//	float step_y = XM_PI / (size_n - 1);
-//	for (int i = 0; i < size_n; ++i)
-//	{
-//		for (int j = 0; j < size_m; ++j)
-//		{
-//			Q[i][j].pos = vec3(step * i,  sin(step_y * i) * 0.1, step * j);
-//			Q[i][j].Color = vec4(0, 0, 0, 1);
-//		}
-//	}
-//
-//	double* U, *V;
-//	vertex** P;
-//	int size_u = 100;
-//	int size_v = 100;
-//	surfInfo surf_inf = BSplineSurface(size_n, size_m, Q, 3, 3, &U, &V, &P, size_u, size_v);
-//	//GlobalAproximationBSpline(size_n, size_m, Q, 3, 3, 20, 20, &U, &V, &P);
-//	//Surfa
-//
-//	//Object* obj = new Object(_pDevice, _pVxSh, _pPxSh, size_n * size_m, convert2DimArrayTo1(P, size_u, size_v), D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
-//	Object* obj = new Object(_pDevice, _pVxSh, _pPxSh, size_u * size_v, convert2DimArrayTo1(P, size_u, size_v), D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
-//	_rs->pushObject(obj);
-//	_rs->drawLineOnBSplineSurface(&surf_inf, 0, 0, false);
-//	_rs->drawLineOnBSplineSurface(&surf_inf, 0, 0.5, true);
-//	drapping_part(_rs, &surf_inf, 0, 0, false, 0, 0.5, true);
-//	/*for (int i = 0; i < size_n; ++i)
-//	{
-//		delete[] Q[i];
-//	}
-//	delete[] Q;*/
-//}
+void generateSurfaceByBSpline(RenderSys* _rs, ID3D11Device* _pDevice, ID3D11VertexShader* _pVxSh, ID3D11PixelShader* _pPxSh)
+{
+	int size_n = 10;
+	int size_m = 10;
+	d_vertex** Q = new d_vertex * [size_n];
+	
+	float step = 1. / size_n;
+	float step_y = XM_PI / (size_n - 1);
+	for (int i = 0; i < size_n; ++i)
+	{
+		Q[i] = new d_vertex[size_m];
+		for (int j = 0; j < size_m; ++j)
+		{
+			Q[i][j] = { step * i,  sin(step_y * i) * 0.1, step * j };
+		}
+	}
+
+	double* U, *V;
+	vertex** P;
+	int size_u = 100;
+	int size_v = 100;
+	surfInfo surf_inf = GenInterpBSplineSurface(size_n, size_m, Q, 3, 3);//BSplineSurface(size_n, size_m, Q, 3, 3, &U, &V, &P, size_u, size_v);
+	//GlobalAproximationBSpline(size_n, size_m, Q, 3, 3, 20, 20, &U, &V, &P);
+	//Surfa
+
+	//Object* obj = new Object(_pDevice, _pVxSh, _pPxSh, size_n * size_m, convert2DimArrayTo1(P, size_u, size_v), D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+	//Object* obj = new Object(_pDevice, _pVxSh, _pPxSh, size_u * size_v, convert2DimArrayTo1(P, size_u, size_v), D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+	//_rs->pushObject(obj);
+	_rs->drawLineOnBSplineSurface(&surf_inf, 0, 0, false);
+	_rs->drawLineOnBSplineSurface(&surf_inf, 0, 0.5, true);
+
+	//drappingInit is = { &surf_inf, 0, 0, false, 0, 0.5, true, A, B, gird_size };
+	//makeDrappedGird(_rs, is);
+	/*for (int i = 0; i < size_n; ++i)
+	{
+		delete[] Q[i];
+	}
+	delete[] Q;*/
+}
 
 
 void testPlane(RenderSys* _rs, ID3D11Device* _pDevice, ID3D11VertexShader* _pVxSh, ID3D11PixelShader* _pPxSh)
@@ -357,8 +358,8 @@ void testPlane(RenderSys* _rs, ID3D11Device* _pDevice, ID3D11VertexShader* _pVxS
 		}
 	}
 
-	size_t p = 2;
-	size_t q = 2;
+	size_t p = 3;
+	size_t q = 3;
 	double* uk = new double[pointCnt + p];
 	double* vl = new double[pointCnt + q];
 
@@ -404,7 +405,7 @@ void testPlane(RenderSys* _rs, ID3D11Device* _pDevice, ID3D11VertexShader* _pVxS
 	_rs->drawLineOnBSplineSurface(&si, 0, 0, false);
 	_rs->drawLineOnBSplineSurface(&si, 0, 0.5, true);
 
-	size_t gird_size = 10;
+	size_t gird_size = 90;
 	double A = 1. / (gird_size-1);
 	double B = 1. / (gird_size-1);
 	drappingInit is = { &si, 0, 0.5, true, 0, 0, false, A, B, gird_size};

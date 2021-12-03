@@ -10,6 +10,7 @@
 #include <Render/RenderStructures.h>
 #include <Math/Bspline.h>
 #include <Math/MathStructures.h>
+#include <Math/MathLib.h>
 
 
 struct drappingInit {

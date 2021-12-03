@@ -561,7 +561,7 @@ surfInfo GenInterpBSplineSurface(size_t n, size_t m, d_vertex** Q, size_t p, siz
 	return res;
 }
 
-d_vertex SurfacePoint(surfInfo* sfI, double u, double v)
+d_vertex SurfacePoint(const surfInfo* sfI, double u, double v)
 {
 	size_t uspan = FindSpan(sfI->n, sfI->p, u, sfI->Uk, sfI->n + sfI->p);
 	double* Nu, * Nv;
@@ -607,6 +607,11 @@ d_vertex** SurfaceDerivsAlg1(const surfInfo* sfI, double u, double v, size_t d)
 	double** Nu = DersBasisFuns(uspan, u, sfI->p, sfI->n, sfI->Uk);
 	double** Nv = DersBasisFuns(vspan, v, sfI->q, sfI->m, sfI->Vl);
 	
+	/*std::cout << "Nu:\n";
+	for (int i = 0; i <= sfI->p; ++i) std::cout << "\ti:" << i << ": " << Nu[1][i] << ";\n";
+	std::cout << "Nv:\n";
+	for (int i = 0; i <= sfI->q; ++i) std::cout << "\ti:" << i << ": " << Nv[1][i] << ";\n";*/
+
 	d_vertex* temp = new d_vertex[sfI->q + 1];
 	
 	for (size_t k = 0; k <= du; ++k)

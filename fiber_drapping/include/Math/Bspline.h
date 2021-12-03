@@ -47,7 +47,7 @@ void saveAsTransponsed(d_vertex** mx, size_t n, size_t m, size_t idx, d_vertex* 
 //Q - n*m vertex array; p, q - spline degree; 
 surfInfo GenInterpBSplineSurface(size_t n, size_t m, d_vertex** Q, size_t p, size_t q);
 
-d_vertex SurfacePoint(surfInfo* sfI, double u, double v);
+d_vertex SurfacePoint(const surfInfo* sfI, double u, double v);
 
 //d - derivaion degree
 d_vertex** SurfaceDerivsAlg1(const surfInfo* sfI, double u, double v, size_t d);

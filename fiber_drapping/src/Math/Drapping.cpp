@@ -18,7 +18,7 @@ bool getBSplineDrapPoint(double** W, double** invW, drappingCell& cell)
 	double* f = new double[dim];
 	double* dx;
 
-	double epsilon = 0.01; // Варьировать сравнение ошибки в зависимости от накопленной ошибки. Т.е. если накопилась большая ошибка, то уменьшать макисмально взоможную, или прижимать в другую сторону
+	double epsilon = 0.0001; // Варьировать сравнение ошибки в зависимости от накопленной ошибки. Т.е. если накопилась большая ошибка, то уменьшать макисмально взоможную, или прижимать в другую сторону
 	double len = 100000;
 	
 	bool corrupted = false;
@@ -42,8 +42,8 @@ bool getBSplineDrapPoint(double** W, double** invW, drappingCell& cell)
 
 		LUDecomposition(W, dim, &L, &U);
 		dx = LUForwardBackward(L, U, f, 2);
-		dx[0] *= 0.1;
-		dx[1] *= 0.1;
+		dx[0] *= 0.01;
+		dx[1] *= 0.01;
 		//if ((ptIJ->u + dx[0] < 0) || (ptIJ->v + dx[1] < 0) || (ptIJ->u + dx[0] > 1) || (ptIJ->v + dx[1] > 1)) corrupted = true;
 		d_vertex oldPoint = *(cell.ptIJ->pt);
 		
@@ -87,8 +87,10 @@ bool getBSplineDrapPoint(double** W, double** invW, drappingCell& cell)
 
 		double bufA = (cell.si->A) * epsilon - cell.accumULen;
 		double bufB = (cell.si->B) * epsilon - cell.accumVLen;
-		if ((f[0] <= (cell.si->A) * epsilon - cell.accumULen) && (f[1] <= (cell.si->B) * epsilon - cell.accumVLen) && !corrupted)
+		//if ((f[0] <= (cell.si->A) * epsilon - cell.accumULen) && (f[1] <= (cell.si->B) * epsilon - cell.accumVLen) && !corrupted)
 		//if ((fabs(f[0]) < 0.01) && (fabs(f[1]) < 0.01))
+		if ((getDistance(*cell.ptIJ->pt, *cell.ptIJm1->pt) - cell.si->A < cell.si->A * epsilon) 
+			&& (getDistance(*cell.ptIJ->pt, *cell.ptIm1J->pt) - cell.si->B < cell.si->B* epsilon))
 		{
 			flag = false;
 			break;
@@ -138,31 +140,51 @@ void generateInitialLines(bSplinePt** P, d_vertex** Q, const drappingInit& _is)
 {
 
 	double cycle_step = 1. / (_is.gird_size - 1);
+	std::cout << "Generate initial lines:\n";
 
-	for (UINT i = 0; i < _is.gird_size; ++i)
+	P[0][0].u = 0;
+	P[0][0].v = 0;
+	
+	if (_is.isU1) P[0][0].u = _is.u1;
+	else P[0][0].v = _is.v1;
+	if (_is.isU2) P[0][0].u = _is.u2;
+	else P[0][0].v = _is.v2;
+
+	Q[0][0] = SurfacePoint(_is.sfI, P[0][0].u, P[0][0].v);
+	double eps = 0.0001;
+	for (UINT i = 1; i < _is.gird_size; ++i)
 	{
 		if (_is.isU1)
 		{
 			P[0][i].u = _is.u1;
 			P[0][i].v = i * cycle_step;
+			P[0][i].v = bisectionV(_is.sfI, P[0][i], P[0][i - 1], 1., eps*_is.B, _is.B);
 		}
 		else
 		{
 			P[0][i].u = i * cycle_step;
 			P[0][i].v = _is.v1;
+			P[0][i].u = bisectionU(_is.sfI, P[0][i], P[0][i - 1], 1., eps * _is.A, _is.A);
 		}
 		if (_is.isU2)
 		{
 			P[i][0].u = _is.u2;
 			P[i][0].v = i * cycle_step;
+			P[i][0].v = bisectionV(_is.sfI, P[i][0], P[i-1][0], 1., eps * _is.B, _is.B);
 		}
 		else
 		{
 			P[i][0].u = i * cycle_step;
 			P[i][0].v = _is.v2;
+			P[i][0].u = bisectionU(_is.sfI, P[i][0], P[i - 1][0], 1., eps * _is.A, _is.A);
 		}
-		Q[0][i] = SurfacePoint(_is.sfI, P[0][i].u, P[0][i].v);
 		Q[i][0] = SurfacePoint(_is.sfI, P[i][0].u, P[i][0].v);
+		Q[0][i] = SurfacePoint(_is.sfI, P[0][i].u, P[0][i].v);
+#ifdef _DEBUG
+		std::cout << "i: " << i << ";\n\t(Q[0][i];Q[0][i - 1]) dist is: " << getDistance(Q[0][i], Q[0][i - 1]) << "\n";
+		std::cout << "\t(Q[0][i];Q[0][i-1]) dist is: " << getDistance(Q[0][i], Q[0][i - 1]) << "\n";
+		std::cout << "\t(Q[i][0];Q[i-1][0]) dist is: " << getDistance(Q[i][0], Q[i-1][0]) << "\n";
+#endif
 	}
 }
 
@@ -301,6 +323,7 @@ void makeDrappedGird(RenderSys* _rs, const drappingInit& _is)
 			cell.accumULen = uAcc[(i + 1) * size + j];
 			cell.accumVLen = vAcc[i * size + j + 1];
 
+			//ptIJ->u = max(ptIJm1->u, ptIm1J->u);
 			ptIJ->u = (ptIJm1->u + ptIm1J->u) / 2;//ptIJm1->u;
 			ptIJ->v = max(ptIJm1->v, ptIm1J->v);// ptIJm1->v - 2* delta_u;
 			if ((ptIJ->u == ptIJm1->u) && (ptIJ->v == ptIJm1->v) || (ptIJ->u == ptIm1J->u) && (ptIJ->v == ptIm1J->v))

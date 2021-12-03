@@ -100,3 +100,74 @@ double* LUForwardBackward(double** L, double** U, double* b, size_t q)
 	delete[] y;
 	return res;
 }
+
+
+double bisectionU(const surfInfo* sfI, const bSplinePt& Pij, const bSplinePt& Pim1j, double b, double eps, double A)
+{
+	bSplinePt ya(Pij), yb(Pim1j);
+	d_vertex vx_a, vx_b, vx_midle;
+	double dist_a, dist_b, dist_middle, a = Pim1j.u, d = b-a, middle;
+
+	ya.u = a;
+	yb.u = b;
+	ya.pt = &vx_a;
+	yb.pt = &vx_b;
+	vx_a = SurfacePoint(sfI, ya.u, ya.v);
+	vx_b = SurfacePoint(sfI, yb.u, yb.v);
+
+	dist_a = getDistance(*ya.pt, *Pim1j.pt) - A;
+	dist_b = getDistance(*yb.pt, *Pim1j.pt) - A;
+	if (signbit(dist_a) == signbit(dist_b)) 
+	{
+		if (dist_b < eps) return 1.;
+		throw("bisectionU singbit(dist1) == signbit(dist2)"); ///@todo If this exception was thrown, than use different method(such Newton)
+	}
+	do
+	{
+		d /= 2;
+		middle = ya.u + d;
+		vx_midle = SurfacePoint(sfI, middle, Pim1j.v);
+		dist_middle = getDistance(vx_midle, *Pim1j.pt) - A;
+		
+		if (signbit(dist_middle) == signbit(dist_a)) ya.u = middle;
+		else yb.u = middle;
+
+	} while (fabs(dist_middle) > eps);
+
+	return middle;
+}
+
+double bisectionV(const surfInfo* sfI, const bSplinePt& Pij, const bSplinePt& Pijm1, double b, double eps, double B)
+{
+	bSplinePt ya(Pij), yb(Pijm1);
+	d_vertex vx_a, vx_b, vx_midle;
+	double dist_a, dist_b, dist_middle, a = Pijm1.v, d = b - a, middle;
+
+	ya.v = a;
+	yb.v = b;
+	ya.pt = &vx_a;
+	yb.pt = &vx_b;
+	vx_a = SurfacePoint(sfI, ya.u, ya.v);
+	vx_b = SurfacePoint(sfI, yb.u, yb.v);
+
+	dist_a = getDistance(*ya.pt, *Pijm1.pt) - B;
+	dist_b = getDistance(*yb.pt, *Pijm1.pt) - B;
+	if (signbit(dist_a) == signbit(dist_b))
+	{
+		if (dist_b < eps) return 1.;
+		throw("bisectionV singbit(dist1) == signbit(dist2)"); ///@todo If this exception was thrown, than use different method(such Newton)
+	}
+	do
+	{
+		d /= 2;
+		middle = ya.v + d;
+		vx_midle = SurfacePoint(sfI, Pijm1.u, middle);
+		dist_middle = getDistance(vx_midle, *Pijm1.pt) - B;
+
+		if (signbit(dist_middle) == signbit(dist_a)) ya.v = middle;
+		else yb.v = middle;
+
+	} while (fabs(dist_middle) > eps);
+
+	return middle;
+}
