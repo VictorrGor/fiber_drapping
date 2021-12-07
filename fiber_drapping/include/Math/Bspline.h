@@ -51,3 +51,35 @@ d_vertex SurfacePoint(const surfInfo* sfI, double u, double v);
 
 //d - derivaion degree
 d_vertex** SurfaceDerivsAlg1(const surfInfo* sfI, double u, double v, size_t d);
+
+
+//n - derivation degree, p -spline degree, ders - result
+struct DersBasisFunsInit
+{
+	double** ndu;  //[p+1][p+1]
+	double** a;    //[2][p+1]
+	double** ders; //[n+1][p+1]
+	double* left;  //[p+1]
+	double* right; //[p+1]
+};
+
+struct DerivationInit
+{
+	d_vertex** SKL; //IJ derivation
+	d_vertex* temp; //sfI->q + 1
+	DersBasisFunsInit* sU;
+	DersBasisFunsInit* sV;
+	size_t der_degree;
+};
+
+DersBasisFunsInit* initDersBasisFunsStruct(size_t p, size_t n);
+DerivationInit* initDerivationInitStruct(const surfInfo* sfI, size_t der_degree);
+
+void releaseDersBasisFunsStruct(size_t p, size_t n, DersBasisFunsInit* _obj);
+void releaseDerivationInitStruct(const surfInfo* sfI, DerivationInit* _obj);
+
+void SurfaceDerivsAlg1(const surfInfo* sfI, double u, double v, size_t d, d_vertex** SKL);
+
+void SurfaceDerivsAlg1(const surfInfo* sfI, double u, double v, DerivationInit* der_init);
+
+void DersBasisFuns(size_t i, double u, int p, int n, double* U, DersBasisFunsInit* der_bf);

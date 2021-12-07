@@ -286,8 +286,8 @@ double** DersBasisFuns(size_t i, double u, int p, int n, double* U)
 			if (rk >= -1)	j1 = 1;
 			else			j1 = -rk;
 
-			if (r - 1 <= pk)	j2 = k - 1;
-			else				j2 = p - r;
+			if (r-1 <= pk)	j2 = k - 1;
+			else			j2 = p - r;
 
 			for (int j = j1; j <= j2; ++j)
 			{
@@ -604,8 +604,8 @@ d_vertex** SurfaceDerivsAlg1(const surfInfo* sfI, double u, double v, size_t d)
 	size_t uspan = FindSpan(sfI->n, sfI->p, u, sfI->Uk, sfI->n + sfI->p + 1);
 	size_t vspan = FindSpan(sfI->m, sfI->q, v, sfI->Vl, sfI->m + sfI->q + 1);
 	
-	double** Nu = DersBasisFuns(uspan, u, sfI->p, sfI->n, sfI->Uk);
-	double** Nv = DersBasisFuns(vspan, v, sfI->q, sfI->m, sfI->Vl);
+	double** Nu = DersBasisFuns(uspan, u, sfI->p, d, sfI->Uk);
+	double** Nv = DersBasisFuns(vspan, v, sfI->q, d, sfI->Vl);
 	
 	/*std::cout << "Nu:\n";
 	for (int i = 0; i <= sfI->p; ++i) std::cout << "\ti:" << i << ": " << Nu[1][i] << ";\n";
@@ -634,11 +634,235 @@ d_vertex** SurfaceDerivsAlg1(const surfInfo* sfI, double u, double v, size_t d)
 			}
 		}
 	}
-	for (int i = 0; i <= sfI->n; ++i) delete[] Nu[i];
-	for (int i = 0; i <= sfI->m; ++i) delete[] Nv[i];
+	for (int i = 0; i <= d; ++i) delete[] Nu[i];
+	for (int i = 0; i <= d; ++i) delete[] Nv[i];
 	delete[] Nu;
 	delete[] Nv;
 	delete[] temp;
 
 	return SKL;
+}
+
+///SKL[d+1][d+1]; d - derivation degree
+void SurfaceDerivsAlg1(const surfInfo* sfI, double u, double v, size_t d, d_vertex** SKL)
+{
+	size_t du = min(sfI->p, d);
+	size_t dv = min(sfI->q, d);
+	for (size_t k = sfI->p + 1; k <= d; ++k)
+		for (size_t l = 0; l <= d - k; ++l) SKL[k][l] = d_vertex();
+
+	for (size_t l = sfI->q + 1; l <= d; ++l)
+		for (size_t k = 0; k <= d - l; ++k) SKL[k][l] = d_vertex();
+
+	size_t uspan = FindSpan(sfI->n, sfI->p, u, sfI->Uk, sfI->n + sfI->p + 1);
+	size_t vspan = FindSpan(sfI->m, sfI->q, v, sfI->Vl, sfI->m + sfI->q + 1);
+
+	double** Nu = DersBasisFuns(uspan, u, sfI->p, sfI->n, sfI->Uk);
+	double** Nv = DersBasisFuns(vspan, v, sfI->q, sfI->m, sfI->Vl);
+
+	/*std::cout << "Nu:\n";
+	for (int i = 0; i <= sfI->p; ++i) std::cout << "\ti:" << i << ": " << Nu[1][i] << ";\n";
+	std::cout << "Nv:\n";
+	for (int i = 0; i <= sfI->q; ++i) std::cout << "\ti:" << i << ": " << Nv[1][i] << ";\n";*/
+
+	d_vertex* temp = new d_vertex[sfI->q + 1];
+
+	for (size_t k = 0; k <= du; ++k)
+	{
+		for (size_t s = 0; s <= sfI->q; ++s)
+		{
+			temp[s] = d_vertex();
+			for (size_t r = 0; r <= sfI->p; ++r)
+			{
+				temp[s] = temp[s] + Nu[k][r] * sfI->controlPoints[uspan - sfI->p + r][vspan - sfI->q + s];
+			}
+		}
+		size_t dd = min(d - k, dv);
+		for (size_t l = 0; l <= dd; ++l)
+		{
+			SKL[k][l] = d_vertex();
+			for (size_t s = 0; s <= sfI->q; ++s)
+			{
+				SKL[k][l] = SKL[k][l] + Nv[l][s] * temp[s];
+			}
+		}
+	}
+	for (int i = 0; i <= sfI->n; ++i) delete[] Nu[i];
+	for (int i = 0; i <= sfI->m; ++i) delete[] Nv[i];
+	delete[] Nu;
+	delete[] Nv;
+	delete[] temp;
+}
+
+
+DersBasisFunsInit* initDersBasisFunsStruct(size_t p, size_t n)
+{
+	DersBasisFunsInit* res = new DersBasisFunsInit();
+	res->ndu = new double* [p + 1];
+	res->a = new double* [2];
+	res->ders = new double* [n + 1];
+	for (size_t i = 0; i < p + 1; ++i) res->ndu[i] = new double[p + 1];
+	for (size_t i = 0; i < 2; ++i) res->a[i] = new double[p + 1];
+	for (size_t i = 0; i < n + 1; ++i) res->ders[i] = new double[p + 1];
+
+	res->left = new double[p + 1];
+	res->right = new double[p + 1];
+
+	return res;
+}
+
+void releaseDersBasisFunsStruct(size_t p, size_t n, DersBasisFunsInit* _obj)
+{
+	for (size_t i = 0; i < p + 1; ++i) delete[] _obj->ndu[i];
+	for (size_t i = 0; i < 2; ++i) delete[] _obj->a[i];
+	for (size_t i = 0; i < n + 1; ++i) delete[] _obj->ders[i];
+
+	delete[] _obj->a, _obj->ders, _obj->left, _obj->ndu, _obj->right;
+}
+
+DerivationInit* initDerivationInitStruct(const surfInfo* sfI, size_t der_degree)
+{
+	DerivationInit* res = new DerivationInit();
+	res->der_degree = der_degree;
+	res->SKL = new d_vertex * [der_degree + 1];
+	for (size_t i = 0; i < der_degree + 1; ++i) res->SKL[i] = new d_vertex[der_degree + 1];
+	res->temp = new d_vertex[sfI->q + 1];
+	res->sU = initDersBasisFunsStruct(sfI->p, der_degree);
+	res->sV = initDersBasisFunsStruct(sfI->q, der_degree);
+
+	return res;
+};
+
+void releaseDerivationInitStruct(const surfInfo* sfI, DerivationInit* _obj)
+{
+	for (int i = 0; i < _obj->der_degree; ++i) delete[] _obj->SKL[i];
+	releaseDersBasisFunsStruct(sfI->p, _obj->der_degree, _obj->sU);
+	releaseDersBasisFunsStruct(sfI->q, _obj->der_degree, _obj->sV);
+	delete[] _obj->SKL, _obj->temp;
+}
+
+void SurfaceDerivsAlg1(const surfInfo* sfI, double u, double v, DerivationInit* der_init)
+{
+	size_t d = der_init->der_degree;
+	size_t du = min(sfI->p, d);
+	size_t dv = min(sfI->q, d);
+	for (size_t k = sfI->p + 1; k <= d; ++k)
+		for (size_t l = 0; l <= d - k; ++l) der_init->SKL[k][l] = d_vertex();
+
+	for (size_t l = sfI->q + 1; l <= d; ++l)
+		for (size_t k = 0; k <= d - l; ++k) der_init->SKL[k][l] = d_vertex();
+
+	size_t uspan = FindSpan(sfI->n, sfI->p, u, sfI->Uk, sfI->n + sfI->p + 1);
+	size_t vspan = FindSpan(sfI->m, sfI->q, v, sfI->Vl, sfI->m + sfI->q + 1);
+
+	DersBasisFuns(uspan, u, sfI->p, der_init->der_degree, sfI->Uk, der_init->sU);
+	DersBasisFuns(vspan, v, sfI->q, der_init->der_degree, sfI->Vl, der_init->sV);
+
+	double** Nu = der_init->sU->ders;
+	double** Nv = der_init->sV->ders;
+	
+	for (size_t k = 0; k <= du; ++k)
+	{
+		for (size_t s = 0; s <= sfI->q; ++s)
+		{
+			der_init->temp[s] = d_vertex();
+			for (size_t r = 0; r <= sfI->p; ++r)
+			{
+				der_init->temp[s] = der_init->temp[s] + Nu[k][r] * sfI->controlPoints[uspan - sfI->p + r][vspan - sfI->q + s];
+			}
+		}
+		size_t dd = min(d - k, dv);
+		for (size_t l = 0; l <= dd; ++l)
+		{
+			der_init->SKL[k][l] = d_vertex();
+			for (size_t s = 0; s <= sfI->q; ++s)
+			{
+				der_init->SKL[k][l] = der_init->SKL[k][l] + Nv[l][s] * der_init->temp[s];
+			}
+		}
+	}
+}
+
+//U - knot vector; ders - result; n (n<= p) - derivate degree
+void DersBasisFuns(size_t i, double u, int p, int n, double* U, DersBasisFunsInit* der_bf)
+{
+	double** ders = der_bf->ders;
+	double** ndu = der_bf->ndu;
+	double** a = der_bf->a;
+
+	double* left = der_bf->left;
+	double* right = der_bf->right;
+	double saved = 0;
+	double temp = 0;
+
+	ndu[0][0] = 1.0;
+	for (int j = 1; j <= p; ++j)
+	{
+		left[j] = u - U[i + 1 - j];
+		right[j] = U[i + j] - u;
+		saved = 0.0;
+		for (int r = 0; r < j; ++r)
+		{
+			ndu[j][r] = right[r + 1] + left[j - r];
+			temp = ndu[r][j - 1] / ndu[j][r];
+
+			ndu[r][j] = saved + right[r + 1] * temp;
+			saved = left[j - r] * temp;
+		}
+		ndu[j][j] = saved;
+	}
+
+	for (int j = 0; j <= p; ++j) ders[0][j] = ndu[j][p];
+
+	for (int r = 0; r <= p; ++r)
+	{
+		int s1 = 0;
+		int s2 = 1;
+		a[0][0] = 1.0;
+		int j1 = 0;
+		int j2 = 0;
+		for (int k = 1; k <= n; ++k)
+		{
+			double d = 0;
+			int rk = r - k;
+			int pk = p - k;
+			if (r >= k)
+			{
+				a[s2][0] = a[s1][0] / ndu[pk + 1][rk];
+				d = a[s2][0] * ndu[rk][pk];
+			}
+			if (rk >= -1)	j1 = 1;
+			else			j1 = -rk;
+
+			if (r - 1 <= pk)	j2 = k - 1;
+			else			j2 = p - r;
+
+			for (int j = j1; j <= j2; ++j)
+			{
+				a[s2][j] = (a[s1][j] - a[s1][j - 1]) / ndu[pk + 1][rk + j];
+				d += a[s2][j] * ndu[rk + j][pk];
+			}
+
+			if (r <= pk)
+			{
+				a[s2][k] = -a[s1][k - 1] / ndu[pk + 1][r];
+				d += a[s2][k] * ndu[r][pk];
+			}
+			ders[k][r] = d;
+			//Switch rows//
+			int j;
+
+			j = s1;
+			s1 = s2;
+			s2 = j;
+		}
+	}
+
+	//Multiply through by the correct factors//
+	double r = p;
+	for (int k = 1; k <= n; ++k)
+	{
+		for (int j = 0; j <= p; ++j) ders[k][j] *= r;
+		r *= (p - k);
+	}
 }

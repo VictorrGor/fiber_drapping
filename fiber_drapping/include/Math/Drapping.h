@@ -11,6 +11,7 @@
 #include <Math/Bspline.h>
 #include <Math/MathStructures.h>
 #include <Math/MathLib.h>
+#include "../TimeBench.h"
 
 
 struct drappingInit {
@@ -46,3 +47,7 @@ double getAngle(const d_vertex* const* gird, size_t i, size_t j, size_t p, size_
 
 bool getBSplineDrapPoint(double** W, double** invW, drappingCell& cell);
 void getJakobain(double** W, const bSplinePt* ptIJ, const bSplinePt* ptIm1J, const bSplinePt* ptIJm1, const d_vertex* const* IJder);
+
+void makeDrappedGird_optimized(RenderSys* _rs, const drappingInit& _is);
+
+void makeDrappedGird_optimized_v2(RenderSys* _rs, const drappingInit& _is);

@@ -14,7 +14,7 @@ void lighting_test(RenderSys* _rs, ID3D11Device* _pDevice, ID3D11VertexShader* _
 
 //void test_surface(RenderSys* _rs, ID3D11Device* _pDevice, ID3D11VertexShader* _pVxSh, ID3D11PixelShader* _pPxSh);
 //
-//void generateSphere(RenderSys* _rs, ID3D11Device* _pDevice, ID3D11VertexShader* _pVxSh, ID3D11PixelShader* _pPxSh);
+void generateSphere(RenderSys* _rs, ID3D11Device* _pDevice, ID3D11VertexShader* _pVxSh, ID3D11PixelShader* _pPxSh);
 //
 //void drawSinSurf(RenderSys* _rs, ID3D11Device* _pDevice, ID3D11VertexShader* _pVxSh, ID3D11PixelShader* _pPxSh);
 //

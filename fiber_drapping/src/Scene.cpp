@@ -179,46 +179,46 @@ void lighting_test(RenderSys* _rs, ID3D11Device* _pDevice, ID3D11VertexShader* _
 //	drapping_part(_rs, &sfI, 0.75, 0, true, 1, 0, true);
 //}
 //
-//void generateSphere(RenderSys* _rs, ID3D11Device* _pDevice, ID3D11VertexShader* _pVxSh, ID3D11PixelShader* _pPxSh)
-//{
-//	int step_cnt_fi = 100;
-//	int step_cnt_teta = 100;
-//	float R = 1.;
-//	vertex** pts = new vertex * [step_cnt_fi];
-//	for (int i = 0; i < step_cnt_fi; ++i)
-//	{
-//		pts[i] = new vertex[step_cnt_teta];
-//	}
-//
-//	vertex bufVx;
-//	float step_fi = XM_2PI / (step_cnt_fi - 1);
-//	float step_teta = XM_PI / (step_cnt_teta - 1) / 2;
-//	for (int i = 0; i < step_cnt_fi; ++i)
-//	{
-//		for (int j = 0; j < step_cnt_teta; ++j)
-//		{
-//			bufVx.pos = vec3(R * cos(i * step_fi) * sin(j * step_teta), R * sin(i * step_fi) * sin(j * step_teta), R * cos(j * step_teta));
-//			pts[i][j] = bufVx;
-//		}
-//	}
-//
-//	Object* pts_raw = new Object(_pDevice, _pVxSh, _pPxSh, step_cnt_fi * step_cnt_teta, convert2DimArrayTo1(pts, step_cnt_fi, step_cnt_teta), D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
-//	//_rs->pushObject(pts_raw);
-//
-//	surfInfo sfi = GenInterpBSplineSurface(step_cnt_fi, step_cnt_teta, pts, 3, 3);
-//
-//	_rs->drawLineOnBSplineSurface(&sfi, 0, 0, true);
-//	_rs->drawLineOnBSplineSurface(&sfi, 0.25, 0, true);
-//	_rs->drawLineOnBSplineSurface(&sfi, 0.00457597, 0, true);
-//
-//	drapping_part(_rs, &sfi, 0, 0, true, 0.25, 0, true);
-//	
-//	for (int i = 0; i < step_cnt_fi; ++i)
-//	{
-//		delete[] pts[i];
-//	}
-//	delete[] pts;
-//}
+void generateSphere(RenderSys* _rs, ID3D11Device* _pDevice, ID3D11VertexShader* _pVxSh, ID3D11PixelShader* _pPxSh)
+{
+	int step_cnt_fi = 100;
+	int step_cnt_teta = 100;
+	float R = 1.;
+	vertex** pts = new vertex * [step_cnt_fi];
+	for (int i = 0; i < step_cnt_fi; ++i)
+	{
+		pts[i] = new vertex[step_cnt_teta];
+	}
+
+	vertex bufVx;
+	float step_fi = XM_2PI / (step_cnt_fi - 1);
+	float step_teta = XM_PI / (step_cnt_teta - 1) / 2;
+	for (int i = 0; i < step_cnt_fi; ++i)
+	{
+		for (int j = 0; j < step_cnt_teta; ++j)
+		{
+			bufVx.pos = vec3(R * cos(i * step_fi) * sin(j * step_teta), R * sin(i * step_fi) * sin(j * step_teta), R * cos(j * step_teta));
+			pts[i][j] = bufVx;
+		}
+	}
+
+	Object* pts_raw = new Object(_pDevice, _pVxSh, _pPxSh, step_cnt_fi * step_cnt_teta, convert2DimArrayTo1(pts, step_cnt_fi, step_cnt_teta), D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+	//_rs->pushObject(pts_raw);
+
+	surfInfo sfi = GenInterpBSplineSurface(step_cnt_fi, step_cnt_teta, pts, 3, 3);
+
+	_rs->drawLineOnBSplineSurface(&sfi, 0, 0, true);
+	_rs->drawLineOnBSplineSurface(&sfi, 0.25, 0, true);
+	_rs->drawLineOnBSplineSurface(&sfi, 0.00457597, 0, true);
+
+	drapping_part(_rs, &sfi, 0, 0, true, 0.25, 0, true);
+	
+	for (int i = 0; i < step_cnt_fi; ++i)
+	{
+		delete[] pts[i];
+	}
+	delete[] pts;
+}
 //
 //void drawSinSurf(RenderSys* _rs, ID3D11Device* _pDevice, ID3D11VertexShader* _pVxSh, ID3D11PixelShader* _pPxSh)
 //{
@@ -317,7 +317,7 @@ void generateSurfaceByBSpline(RenderSys* _rs, ID3D11Device* _pDevice, ID3D11Vert
 		Q[i] = new d_vertex[size_m];
 		for (int j = 0; j < size_m; ++j)
 		{
-			Q[i][j] = { step * i,  sin(step_y * i)  * 0.1, step * j };
+			Q[i][j] = { step * j,  sin(step_y * j)  * 0.1, step * i };
 		}
 	}
 
@@ -335,11 +335,13 @@ void generateSurfaceByBSpline(RenderSys* _rs, ID3D11Device* _pDevice, ID3D11Vert
 	_rs->drawLineOnBSplineSurface(&surf_inf, 0, 0, false);
 	_rs->drawLineOnBSplineSurface(&surf_inf, 0, 0, true);
 
-	size_t gird_size = 50;
+	size_t gird_size = 100;
 	double A = 1. / gird_size;
 	double B = 1.00727 / gird_size;
-	drappingInit is = { &surf_inf, 0, 0, true, 0, 0, false, A, B, gird_size };
+	drappingInit is = { &surf_inf, 0, 0, false, 0, 0, true, A, B, gird_size };
 	makeDrappedGird(_rs, is);
+	makeDrappedGird_optimized(_rs, is);
+	makeDrappedGird_optimized_v2(_rs, is);
 	/*for (int i = 0; i < size_n; ++i)
 	{
 		delete[] Q[i];

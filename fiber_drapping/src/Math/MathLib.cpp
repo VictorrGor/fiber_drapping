@@ -48,6 +48,75 @@ void LUDecomposition(double** A, size_t q, double*** L, double*** U)
 	}
 }
 
+
+
+void LUDecomposition(double* A, size_t q, double*** L, double*** U)
+{
+
+	for (size_t i = 0; i < q; ++i)
+	{
+		(*U)[i] = (double*)calloc(q, sizeof(double));
+		(*L)[i] = (double*)calloc(q, sizeof(double));
+		(*U)[i][i] = 1;
+	}
+
+	for (int i = 0; i < q; ++i)
+	{
+		for (int j = 0; j < q; ++j)
+		{
+			double sum = 0;
+			if (i < j)
+			{
+				for (int k = 0; k < i; ++k)
+					sum += (*L)[i][k] * (*U)[k][j];
+
+				if (!(*L)[i][i]) throw "LUDecomposition: division by zero!";
+				(*U)[i][j] = (A[i*q + j] - sum) / (*L)[i][i];
+			}
+			else
+			{
+				for (int k = 0; k < j; ++k)
+					sum += (*L)[i][k] * (*U)[k][j];
+
+				(*L)[i][j] = (A[i*q + j] - sum);
+			}
+		}
+	}
+}
+
+
+void LUDecomposition(double* A, size_t q, double* L, double* U)
+{
+	memset(L, 0, sizeof(double) * q * q);
+	memset(U, 0, sizeof(double) * q * q);
+	for (size_t i = 0; i < q; ++i)
+	{
+		U[i*q+i] = 1;
+	}
+	for (int i = 0; i < q; ++i)
+	{
+		for (int j = 0; j < q; ++j)
+		{
+			double sum = 0;
+			if (i < j)
+			{
+				for (int k = 0; k < i; ++k)
+					sum += L[i*q + k] * U[k * q + j];
+
+				if (!L[i * q + i]) throw "LUDecomposition: division by zero!";
+				U[i * q + j] = (A[i * q + j] - sum) / L[i * q + i];
+			}
+			else
+			{
+				for (int k = 0; k < j; ++k)
+					sum += L[i * q + k] * U[k * q + j];
+
+				L[i * q + j] = (A[i * q + j] - sum);
+			}
+		}
+	}
+}
+
 double* LUForwardBackward(double** L, double** U, double* b, size_t q)
 {
 	double* y = (double*)calloc(q, sizeof(double));
@@ -99,6 +168,37 @@ double* LUForwardBackward(double** L, double** U, double* b, size_t q)
 	}
 	delete[] y;
 	return res;
+}
+
+void LUForwardBackward(double* L, double* U, double* b, size_t q, double* res, double* y)
+{
+	memset(y, 0, sizeof(double) * q);
+	memset(res, 0, sizeof(double) * q);
+	//L Forward
+	for (size_t i = 0; i < q; ++i)
+	{
+		for (size_t j = 0; j < i; ++j)
+		{
+			b[i] -= L[i*q + j] * y[j];
+		}
+		if (!L[i * q + i])
+		{
+			throw "LUForwardBackward: L[i][i] is null!";
+		}
+		b[i] /= L[i * q + i];
+		y[i] = b[i];
+	}
+	//U Backward
+	for (int i = q - 1; i >= 0; --i)
+	{
+		for (size_t j = q - 1; j > i; --j)
+		{
+			y[i] -= U[i * q + j] * res[j];
+		}
+		if (!U[i * q + i]) throw "LUForwardBackward: U[i][i] is null!";
+		y[i] /= U[i * q + i];
+		res[i] = y[i];
+	}
 }
 
 
