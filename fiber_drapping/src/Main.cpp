@@ -1,9 +1,13 @@
 // This is a personal academic project. Dear PVS-Studio, please check it.
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
 #define DEBUG_CONSOLE
+#define NO_LOG_ALL_OUTPUT
 #include "Render/Render.h"
 
 #include "Render/Utils.h"
+
+#include <iostream>
+#include <fstream>
 
 RenderSys rs;
 
@@ -122,6 +126,11 @@ void createObjectRenderCounter()
 
 int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpCmdLine, int nCmdShow)
 {
+#ifdef LOG_ALL_OUTPUT
+	std::ofstream outFile;
+	outFile.open("output.txt");
+	std::cout.rdbuf(outFile.rdbuf());
+#endif
 #ifdef DEBUG_CONSOLE
 	if (!AllocConsole()) return 0;
 	FILE* console = freopen("CONOUT$", "w", stdout);
@@ -177,6 +186,9 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpCmdLine, int nCmdSh
 
 	rs.CleanupDevice();
 
+#ifdef LOG_ALL_OUTPUT
+	outFile.close();
+#endif
 	fclose(console);
 	return msg.wParam;
 }

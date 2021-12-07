@@ -4,8 +4,8 @@
 
 void getF(double* f, const d_vertex* ptIJ, const d_vertex* ptIm1J, const d_vertex* ptIJm1, double A, double B)
 {
-	f[0] = -(pow((ptIJ->x - ptIm1J->x), 2) + pow((ptIJ->y - ptIm1J->y), 2) + pow((ptIJ->z - ptIm1J->z), 2) - pow(A, 2));
-	f[1] = -(pow((ptIJ->x - ptIJm1->x), 2) + pow((ptIJ->y - ptIJm1->y), 2) + pow((ptIJ->z - ptIJm1->z), 2) - pow(B, 2));
+	f[0] = -(pow((ptIJ->x - ptIm1J->x), 2) + pow((ptIJ->y - ptIm1J->y), 2) + pow((ptIJ->z - ptIm1J->z), 2) - pow(B, 2));
+	f[1] = -(pow((ptIJ->x - ptIJm1->x), 2) + pow((ptIJ->y - ptIJm1->y), 2) + pow((ptIJ->z - ptIJm1->z), 2) - pow(A, 2));
 }
 
 bool getBSplineDrapPoint(double** W, double** invW, drappingCell& cell)
@@ -87,10 +87,11 @@ bool getBSplineDrapPoint(double** W, double** invW, drappingCell& cell)
 
 		double bufA = (cell.si->A) * epsilon - cell.accumULen;
 		double bufB = (cell.si->B) * epsilon - cell.accumVLen;
+
 		//if ((f[0] <= (cell.si->A) * epsilon - cell.accumULen) && (f[1] <= (cell.si->B) * epsilon - cell.accumVLen) && !corrupted)
 		//if ((fabs(f[0]) < 0.01) && (fabs(f[1]) < 0.01))
-		if ((getDistance(*cell.ptIJ->pt, *cell.ptIJm1->pt) - cell.si->A < cell.si->A * epsilon) 
-			&& (getDistance(*cell.ptIJ->pt, *cell.ptIm1J->pt) - cell.si->B < cell.si->B* epsilon))
+		if ((fabs(getDistance(*cell.ptIJ->pt, *cell.ptIJm1->pt) - cell.si->A) < cell.si->A * epsilon) 
+			&& (fabs(getDistance(*cell.ptIJ->pt, *cell.ptIm1J->pt) - cell.si->B) < cell.si->B* epsilon))
 		{
 			flag = false;
 			break;
@@ -182,7 +183,6 @@ void generateInitialLines(bSplinePt** P, d_vertex** Q, const drappingInit& _is)
 		Q[0][i] = SurfacePoint(_is.sfI, P[0][i].u, P[0][i].v);
 #ifdef _DEBUG
 		std::cout << "i: " << i << ";\n\t(Q[0][i];Q[0][i - 1]) dist is: " << getDistance(Q[0][i], Q[0][i - 1]) << "\n";
-		std::cout << "\t(Q[0][i];Q[0][i-1]) dist is: " << getDistance(Q[0][i], Q[0][i - 1]) << "\n";
 		std::cout << "\t(Q[i][0];Q[i-1][0]) dist is: " << getDistance(Q[i][0], Q[i-1][0]) << "\n";
 #endif
 	}

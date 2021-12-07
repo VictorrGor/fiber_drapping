@@ -397,8 +397,8 @@ HRESULT RenderSys::InitObjects()
 	this->pointLightObjects.push_back(pl);
 
 
-	testPlane(this, this->g_pd3dDevice, pVxSh, pPxSh);
-	//generateSurfaceByBSpline(this, this->g_pd3dDevice, pVxSh, pPxSh);
+	//testPlane(this, this->g_pd3dDevice, pVxSh, pPxSh);
+	generateSurfaceByBSpline(this, this->g_pd3dDevice, pVxSh, pPxSh);
 	//drawSinSurf(this, this->g_pd3dDevice, pVxSh, pPxSh);
 	//drawSinSurf(this, g_pd3dDevice, pVxSh, pPxSh);
 	//generateSphere(this, g_pd3dDevice, pVxSh, pPxSh);
