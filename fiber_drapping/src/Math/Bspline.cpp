@@ -717,7 +717,12 @@ void releaseDersBasisFunsStruct(size_t p, size_t n, DersBasisFunsInit* _obj)
 	for (size_t i = 0; i < 2; ++i) delete[] _obj->a[i];
 	for (size_t i = 0; i < n + 1; ++i) delete[] _obj->ders[i];
 
-	delete[] _obj->a, _obj->ders, _obj->left, _obj->ndu, _obj->right;
+	delete[] _obj->a;
+	delete[] _obj->ders;
+	delete[] _obj->ndu;
+	delete[] _obj->left;
+	delete[] _obj->right;
+	delete _obj;
 }
 
 DerivationInit* initDerivationInitStruct(const surfInfo* sfI, size_t der_degree)
@@ -725,7 +730,7 @@ DerivationInit* initDerivationInitStruct(const surfInfo* sfI, size_t der_degree)
 	DerivationInit* res = new DerivationInit();
 	res->der_degree = der_degree;
 	res->SKL = new d_vertex * [der_degree + 1];
-	for (size_t i = 0; i < der_degree + 1; ++i) res->SKL[i] = new d_vertex[der_degree + 1];
+	for (size_t i = 0; i <= der_degree; ++i) res->SKL[i] = new d_vertex[der_degree + 1];
 	res->temp = new d_vertex[sfI->q + 1];
 	res->sU = initDersBasisFunsStruct(sfI->p, der_degree);
 	res->sV = initDersBasisFunsStruct(sfI->q, der_degree);
@@ -735,10 +740,12 @@ DerivationInit* initDerivationInitStruct(const surfInfo* sfI, size_t der_degree)
 
 void releaseDerivationInitStruct(const surfInfo* sfI, DerivationInit* _obj)
 {
-	for (int i = 0; i < _obj->der_degree; ++i) delete[] _obj->SKL[i];
+	for (int i = 0; i <= _obj->der_degree; ++i) delete[] _obj->SKL[i];
 	releaseDersBasisFunsStruct(sfI->p, _obj->der_degree, _obj->sU);
 	releaseDersBasisFunsStruct(sfI->q, _obj->der_degree, _obj->sV);
-	delete[] _obj->SKL, _obj->temp;
+	delete[] _obj->SKL, 
+	delete[] _obj->temp;
+	delete _obj;
 }
 
 void SurfaceDerivsAlg1(const surfInfo* sfI, double u, double v, DerivationInit* der_init)

@@ -61,6 +61,7 @@ public:
 	TexturedObject(ID3D11Device* _pDevice, ID3D11VertexShader* _pVxSh, ID3D11PixelShader* _pPxSh, UINT _vertexCount, 
 		TexturedVertex* vecArr, D3D_PRIMITIVE_TOPOLOGY _toplology, UINT _indexCount, UINT* indexArray, 
 		ID3D11Buffer* _pVxBuf = nullptr, ID3D11Buffer* _pIndexBuf = nullptr);
-
+	TexturedObject();
+	~TexturedObject();
 	void Render(ID3D11DeviceContext* _pDeviceContext);
 };

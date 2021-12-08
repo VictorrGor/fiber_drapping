@@ -398,10 +398,11 @@ HRESULT RenderSys::InitObjects()
 
 
 	//testPlane(this, this->g_pd3dDevice, pVxSh, pPxSh);
-	generateSurfaceByBSpline(this, this->g_pd3dDevice, pVxSh, pPxSh);
+	//generateSurfaceByBSpline(this, this->g_pd3dDevice, pVxSh, pPxSh);
+	generateSphere(this, g_pd3dDevice, pVxSh, pPxSh);
+	
 	//drawSinSurf(this, this->g_pd3dDevice, pVxSh, pPxSh);
 	//drawSinSurf(this, g_pd3dDevice, pVxSh, pPxSh);
-	//generateSphere(this, g_pd3dDevice, pVxSh, pPxSh);
 	//lighting_test(this, g_pd3dDevice, pVxSh, pPxSh);
 	mp.transferToRender(this);
 	return hRes;

@@ -229,7 +229,7 @@ TexturedObject::TexturedObject(ID3D11Device* _pDevice, ID3D11VertexShader* _pVxS
 			D3D11_SUBRESOURCE_DATA InitData;
 			ZeroMemory(&InitData, sizeof(InitData));
 			InitData.pSysMem = _indexArray;
-			_pDevice->CreateBuffer(&bd_indexes, &InitData, &pIndexBuf);
+			//_pDevice->CreateBuffer(&bd_indexes, &InitData, &pIndexBuf);
 			HRESULT hRes = _pDevice->CreateBuffer(&bd_indexes, &InitData, &pIndexBuf);
 
 			if (FAILED(hRes))
@@ -241,6 +241,28 @@ TexturedObject::TexturedObject(ID3D11Device* _pDevice, ID3D11VertexShader* _pVxS
 			}
 
 		}
+	}
+}
+
+TexturedObject::TexturedObject()
+{
+	pVertexBuf = nullptr;
+	pIndexBuf = nullptr;
+	texture = nullptr;
+	sampleState = nullptr;
+}
+
+TexturedObject::~TexturedObject()
+{
+	if (pVertexBuf)
+	{
+		pVertexBuf->Release();
+		pVertexBuf = nullptr;
+	}
+	if (pIndexBuf)
+	{
+		pIndexBuf->Release();
+		pIndexBuf = nullptr;
 	}
 }
 

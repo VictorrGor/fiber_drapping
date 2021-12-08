@@ -36,6 +36,16 @@ struct drappingCell {
 	double accumVLen; //accumulated error of edges's length by V coordinate
 };
 
+struct drapPointInit
+{
+	double* f;
+	double* L;
+	double* U;
+	double* dx;
+	double* LU_staff_y;
+	DerivationInit* derInit;
+};
+
 class RenderSys;
 
 ///All lines must start at once point
@@ -51,3 +61,6 @@ void getJakobain(double** W, const bSplinePt* ptIJ, const bSplinePt* ptIm1J, con
 void makeDrappedGird_optimized(RenderSys* _rs, const drappingInit& _is);
 
 void makeDrappedGird_optimized_v2(RenderSys* _rs, const drappingInit& _is);
+void makeDrappedGird_optimized_v3(RenderSys* _rs, const drappingInit& _is);
+drapPointInit* initDrapPointInitStruct(const surfInfo* sfI, size_t dim, size_t der_degree);
+void releaseDrapPointInitStruct(const surfInfo* sfI, drapPointInit* obj, size_t der_degree);

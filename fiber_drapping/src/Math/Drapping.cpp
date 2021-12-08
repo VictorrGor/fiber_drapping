@@ -396,7 +396,12 @@ void makeDrappedGird(RenderSys* _rs, const drappingInit& _is)
 	for (UINT i = 0; i < size; ++i) delete[] Q[i], P[i];
 	for (UINT i = 0; i < dim; ++i)  delete W[i], invW[i];
 
-	delete[] Q, P, W, invW, uAcc, vAcc;
+	delete[] Q;
+	delete[] P;
+	delete[] W;
+	delete[] invW;
+	delete[] uAcc;
+	delete[] vAcc;
 }
 
 /// 
@@ -630,9 +635,7 @@ bool getBSplineDrapPoint_optmized(double* W, double* invW, drappingCell& cell)
 	double epsilon = 0.0001; // Варьировать сравнение ошибки в зависимости от накопленной ошибки. Т.е. если накопилась большая ошибка, то уменьшать макисмально взоможную, или прижимать в другую сторону
 	double len = 100000;
 
-	bool corrupted = false;
 
-	int counter = 0;
 	double* L =  new double[dim*dim];
 	double* U =  new double[dim*dim];
 	double* dx = new double[dim];
@@ -642,23 +645,15 @@ bool getBSplineDrapPoint_optmized(double* W, double* invW, drappingCell& cell)
 
 	while (flag && (maxIterCt > i))
 	{
-		counter++;
-
-		corrupted = false;
-		//(*ptIJ->pt) = SurfacePoint(sfI, ptIJ->u, ptIJ->v);
-
 		SurfaceDerivsAlg1(cell.si->sfI, cell.ptIJ->u, cell.ptIJ->v, derInit);
 		getJakobain(W, cell.ptIJ, cell.ptIm1J, cell.ptIJm1, derInit->SKL);
-		getF(f, cell.ptIJ->pt, cell.ptIm1J->pt, cell.ptIJm1->pt, cell.si->A, cell.si->B);///@todo Optimize memory using. At each iteration memory allocation happens. It too much heavy
+		getF(f, cell.ptIJ->pt, cell.ptIm1J->pt, cell.ptIJm1->pt, cell.si->A, cell.si->B);
 
-		//std::cout << "\n f is: " << f[0] << "\n" << f[1] << "\n";
 
 		LUDecomposition(W, dim, L, U);
 		LUForwardBackward(L, U, f, dim, dx, LU_staff_y);
-		dx[0] *= 0.01;
-		dx[1] *= 0.01;
-		//if ((ptIJ->u + dx[0] < 0) || (ptIJ->v + dx[1] < 0) || (ptIJ->u + dx[0] > 1) || (ptIJ->v + dx[1] > 1)) corrupted = true;
-		d_vertex oldPoint = *(cell.ptIJ->pt);
+		//dx[0] *= 0.01;
+		//dx[1] *= 0.01;
 
 		if (cell.ptIJ->v + dx[1] < 0)
 		{
@@ -697,7 +692,11 @@ bool getBSplineDrapPoint_optmized(double* W, double* invW, drappingCell& cell)
 		++i;
 
 	}
-	delete[] L, U, f, dx, LU_staff_y;
+	delete[] L;
+	delete[] U;
+	delete[] f;
+	delete[] dx;
+	delete[] LU_staff_y;
 
 	releaseDerivationInitStruct(cell.si->sfI, derInit);
 
@@ -857,7 +856,12 @@ void makeDrappedGird_optimized(RenderSys* _rs, const drappingInit& _is)
 
 	//drawDrappedCell(_rs, P, Q, size);
 
-	delete[] Q, P, W, invW, uAcc, vAcc;
+	delete[] Q;
+	delete[] P;
+	delete[] W;
+	delete[] invW;
+	delete[] uAcc;
+	delete[] vAcc;
 }
 
 void makeDrappedGird_optimized_v2(RenderSys* _rs, const drappingInit& _is)
@@ -939,8 +943,8 @@ void makeDrappedGird_optimized_v2(RenderSys* _rs, const drappingInit& _is)
 					ptIJ->u = -1;
 					ptIJ->v = -1;
 					++err_ct;
-					std::cout << err_ct << "\n";
-					std::cout << "\ti:" << i << "; j:" << j << "\n";
+					//std::cout << err_ct << "\n";
+					//std::cout << "\ti:" << i << "; j:" << j << "\n";
 				}
 				else
 				{
@@ -962,5 +966,211 @@ void makeDrappedGird_optimized_v2(RenderSys* _rs, const drappingInit& _is)
 
 	drawDrappedCell(_rs, P, Q, size);
 
-	delete[] Q, P, W, invW, uAcc, vAcc;
+	delete[] Q;
+	delete[] P;
+	delete[] W; 
+	delete[] invW;
+	delete[] uAcc;
+	delete[] vAcc;
+}
+
+
+bool getBSplineDrapPoint_optmized(double* W, double* invW, drappingCell& cell, drapPointInit* _is)
+{
+	const size_t maxIterCt = 10000;
+	bool flag = true;
+	size_t i = 0;
+
+	size_t dim = 2;
+
+	double epsilon = 0.0001; // Варьировать сравнение ошибки в зависимости от накопленной ошибки. Т.е. если накопилась большая ошибка, то уменьшать макисмально взоможную, или прижимать в другую сторону
+	double len = 100000;
+
+	while (flag && (maxIterCt > i))
+	{
+		SurfaceDerivsAlg1(cell.si->sfI, cell.ptIJ->u, cell.ptIJ->v, _is->derInit);
+		getJakobain(W, cell.ptIJ, cell.ptIm1J, cell.ptIJm1, _is->derInit->SKL);
+		getF(_is->f, cell.ptIJ->pt, cell.ptIm1J->pt, cell.ptIJm1->pt, cell.si->A, cell.si->B);
+
+
+		LUDecomposition(W, dim, _is->L, _is->U);
+		LUForwardBackward(_is->L, _is->U, _is->f, dim, _is->dx, _is->LU_staff_y);
+		//dx[0] *= 0.01;
+		//dx[1] *= 0.01;
+
+		if (cell.ptIJ->v + _is->dx[1] < 0)
+		{
+			_is->dx[1] = 0;
+			cell.ptIJ->v = 0;
+		}
+		else
+			if (cell.ptIJ->v + _is->dx[1] > 1)
+			{
+				_is->dx[1] = 0;
+				cell.ptIJ->v = 1;
+			}
+		if (cell.ptIJ->u + _is->dx[0] < 0)
+		{
+			_is->dx[0] = 0;
+			cell.ptIJ->u = 0;
+		}
+		else
+			if (cell.ptIJ->u + _is->dx[0] > 1)
+			{
+				_is->dx[0] = 0;
+				cell.ptIJ->u = 1;
+			}
+
+
+		cell.ptIJ->u += _is->dx[0];
+		cell.ptIJ->v += _is->dx[1];
+		(*cell.ptIJ->pt) = SurfacePoint(cell.si->sfI, cell.ptIJ->u, cell.ptIJ->v);
+
+		if ((fabs(getDistance(*cell.ptIJ->pt, *cell.ptIJm1->pt) - cell.si->A) < cell.si->A * epsilon)
+			&& (fabs(getDistance(*cell.ptIJ->pt, *cell.ptIm1J->pt) - cell.si->B) < cell.si->B * epsilon))
+		{
+			flag = false;
+			break;
+		}
+		++i;
+
+	}
+	return !flag;
+}
+
+
+void makeDrappedGird_optimized_v3(RenderSys* _rs, const drappingInit& _is)
+{
+	std::cout << "A is: " << _is.A << "; B is: " << _is.B << ";\n";
+
+	UINT size = _is.gird_size;
+	bSplinePt* P = new bSplinePt[size * size]; //points warper
+	d_vertex* Q = new d_vertex[size * size];
+	for (UINT i = 0; i < size; ++i)
+	{
+		for (UINT j = 0; j < size; ++j)
+		{
+			P[i * size + j].pt = &Q[i * size + j];
+		}
+	}
+	UINT dim = 2;
+	double* W = new double[dim * dim]; //Jakobian
+	double* invW = new double[dim * dim]; //inverse
+
+	UINT err_ct = 0;
+	double delta_u = 0.01;
+	drappingCell cell = { nullptr, nullptr, nullptr, &_is };
+	//Length accumalation array by u and v coordinate;
+	size_t accum_size = (size) * (size);
+	double* uAcc = new double[accum_size];
+	double* vAcc = new double[accum_size];
+	memset(uAcc, 0, sizeof(double) * accum_size);
+	memset(vAcc, 0, sizeof(double) * accum_size);
+
+	
+
+	{
+		TimeBench tb;
+		generateInitialLines(P, Q, _is);
+	}
+	{
+		TimeBench tb;
+		drapPointInit* drapMem = initDrapPointInitStruct(_is.sfI, dim, 1);
+		for (UINT i = 0; i < size - 1; ++i)
+		{
+			for (UINT j = 0; j < size - 1; ++j)
+			{
+				if ((P[i * size + j].u < 0) || (P[i * size + j + 1].u < 0) || (P[(i + 1) * size + j].u < 0))
+					continue;
+
+				bSplinePt* ptIJ = &P[(i + 1) * size + j + 1];
+				bSplinePt* ptIm1J = &P[i * size + j + 1];
+				bSplinePt* ptIJm1 = &P[(i + 1) * size + j];
+
+				cell.ptIJ = ptIJ;
+				cell.ptIJm1 = ptIJm1;
+				cell.ptIm1J = ptIm1J;
+				cell.accumULen = uAcc[(i + 1) * size + j];
+				cell.accumVLen = vAcc[i * size + j + 1];
+
+				//ptIJ->u = max(ptIJm1->u, ptIm1J->u);
+				ptIJ->u = (ptIJm1->u + ptIm1J->u) / 2;//ptIJm1->u;
+				ptIJ->v = max(ptIJm1->v, ptIm1J->v);// ptIJm1->v - 2* delta_u;
+				if ((ptIJ->u == ptIJm1->u) && (ptIJ->v == ptIJm1->v) || (ptIJ->u == ptIm1J->u) && (ptIJ->v == ptIm1J->v))
+				{
+					ptIJ->u = (ptIJm1->u + ptIm1J->u) / 2;
+				}
+				if (ptIJ->u > 1) ptIJ->u -= 2 * delta_u;
+				if (ptIJ->v > 1) ptIJ->v -= 2 * delta_u;
+				if (ptIJ->u < 0) ptIJ->u = (ptIJm1->u + ptIm1J->u) / 2;//0;
+				if (ptIJ->v < 0) ptIJ->v = min(ptIJm1->v, ptIm1J->v);// 0;// 1 + ptIJ->v;
+
+				(*ptIJ->pt) = SurfacePoint(_is.sfI, ptIJ->u, ptIJ->v);
+
+#ifdef _DEBUG
+				std::cout << "\ti:" << i << "; j:" << j << "\n";
+#endif
+				if (!getBSplineDrapPoint_optmized(W, invW, cell, drapMem))
+				{
+#ifdef _DEBUG
+					std::cout << "\tu:" << ptIJ->u << "; v:" << ptIJ->v << "\n";
+					std::cout << "\tx:" << ptIJ->pt->x << "; y:" << ptIJ->pt->y << "; z:" << ptIJ->pt->z << "\n";
+					std::cout << "Distance XJ, X_1J: " << getDistance(*(ptIJ->pt), *(ptIm1J->pt)) << "\n";
+					std::cout << "Distance XJ, XJ_1: " << getDistance(*(ptIJ->pt), *(ptIJm1->pt)) << "\n";
+#endif
+					ptIJ->u = -1;
+					ptIJ->v = -1;
+					++err_ct;
+					//std::cout << err_ct << "\n";
+					//std::cout << "\ti:" << i << "; j:" << j << "\n";
+				}
+				else
+				{
+					uAcc[(i + 1) * size + (j + 1)] = uAcc[(i + 1) * size + j] + getDistance(*(ptIJ->pt), *(ptIJm1->pt)) - _is.A;
+					vAcc[(i + 1) * size + (j + 1)] = vAcc[i * size + j + 1] + getDistance(*(ptIJ->pt), *(ptIm1J->pt)) - _is.B;
+#ifdef _DEBUG
+					std::cout << "\tu:" << ptIJ->u << "; v:" << ptIJ->v << "\n";
+					std::cout << "\tx:" << ptIJ->pt->x << "; y:" << ptIJ->pt->y << "; z:" << ptIJ->pt->z << "\n";
+					std::cout << "Distance XJ, X_1J: " << getDistance(*(ptIJ->pt), *(ptIm1J->pt)) << "\n";
+					std::cout << "Distance XJ, XJ_1: " << getDistance(*(ptIJ->pt), *(ptIJm1->pt)) << "\n";
+					std::cout << "uAccum: " << uAcc[(i + 1) * size + (j + 1)] << "; vAccum: " << vAcc[(i + 1) * size + (j + 1)] << ";\n";
+#endif									   
+				}
+			}
+		}
+		releaseDrapPointInitStruct(_is.sfI, drapMem, 1);
+	}
+	std::cout << "\nDrapping errors: " << err_ct << "\n";
+
+	//drawDrappedCell(_rs, P, Q, size);
+
+	delete[] Q;
+	delete[] P;
+	delete[] W;
+	delete[] invW;
+	delete[] uAcc;
+	delete[] vAcc;
+}
+
+drapPointInit* initDrapPointInitStruct(const surfInfo* sfI, size_t dim, size_t der_degree)
+{
+	drapPointInit* res = new drapPointInit();
+	res->L = new double[dim * dim];
+	res->U = new double[dim * dim];
+	res->dx = new double[dim];
+	res->LU_staff_y = new double[dim];
+	res->f = new double[dim];
+	res->derInit = initDerivationInitStruct(sfI, der_degree);
+	return res;
+}
+
+void releaseDrapPointInitStruct(const surfInfo* sfI, drapPointInit* obj, size_t der_degree)
+{
+	releaseDerivationInitStruct(sfI, obj->derInit);
+	delete[] obj->dx;
+	delete[] obj->f;
+	delete[] obj->L;
+	delete[] obj->LU_staff_y;
+	delete[] obj->U;
+	delete obj;
 }

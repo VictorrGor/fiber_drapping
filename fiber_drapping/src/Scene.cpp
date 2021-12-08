@@ -184,35 +184,37 @@ void generateSphere(RenderSys* _rs, ID3D11Device* _pDevice, ID3D11VertexShader* 
 	int step_cnt_fi = 100;
 	int step_cnt_teta = 100;
 	float R = 1.;
-	vertex** pts = new vertex * [step_cnt_fi];
+	d_vertex** pts = new d_vertex * [step_cnt_fi];
 	for (int i = 0; i < step_cnt_fi; ++i)
 	{
-		pts[i] = new vertex[step_cnt_teta];
+		pts[i] = new d_vertex[step_cnt_teta];
 	}
 
-	vertex bufVx;
 	float step_fi = XM_2PI / (step_cnt_fi - 1);
 	float step_teta = XM_PI / (step_cnt_teta - 1) / 2;
 	for (int i = 0; i < step_cnt_fi; ++i)
 	{
 		for (int j = 0; j < step_cnt_teta; ++j)
 		{
-			bufVx.pos = vec3(R * cos(i * step_fi) * sin(j * step_teta), R * sin(i * step_fi) * sin(j * step_teta), R * cos(j * step_teta));
-			pts[i][j] = bufVx;
+			pts[i][j] = { R * cos(i * step_fi) * sin(j * step_teta), R * sin(i * step_fi) * sin(j * step_teta), R * cos(j * step_teta) };
 		}
 	}
 
-	Object* pts_raw = new Object(_pDevice, _pVxSh, _pPxSh, step_cnt_fi * step_cnt_teta, convert2DimArrayTo1(pts, step_cnt_fi, step_cnt_teta), D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+	//Object* pts_raw = new Object(_pDevice, _pVxSh, _pPxSh, step_cnt_fi * step_cnt_teta, convert2DimArrayTo1(pts, step_cnt_fi, step_cnt_teta), D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
 	//_rs->pushObject(pts_raw);
 
 	surfInfo sfi = GenInterpBSplineSurface(step_cnt_fi, step_cnt_teta, pts, 3, 3);
 
 	_rs->drawLineOnBSplineSurface(&sfi, 0, 0, true);
 	_rs->drawLineOnBSplineSurface(&sfi, 0.25, 0, true);
-	_rs->drawLineOnBSplineSurface(&sfi, 0.00457597, 0, true);
+	//_rs->drawLineOnBSplineSurface(&sfi, 0.00457597, 0, true);
 
-	drapping_part(_rs, &sfi, 0, 0, true, 0.25, 0, true);
-	
+	size_t gird_size = 100;
+	double A = XM_PI * R * XM_PIDIV2 / (XM_PI  * gird_size);
+	double B = A;
+	drappingInit is = { &sfi, 0, 0, true, 0.25, 0, true, A, B, gird_size };
+	//makeDrappedGird_optimized_v2(_rs, is);
+	//makeDrappedGird_optimized_v3(_rs, is);
 	for (int i = 0; i < step_cnt_fi; ++i)
 	{
 		delete[] pts[i];
