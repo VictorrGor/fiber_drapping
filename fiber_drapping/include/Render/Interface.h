@@ -39,6 +39,7 @@ class Button: public ActiveElement
 class Interface
 {
 	std::map<char, TextTextureInfo*> chars;
+	std::map<const char*, TexturedObject*> mObjects;
 	TextTextureInfo* textureInfoBuf;
 	//File format:
 	//Binary file. First element has UINT type and stores count of characters.
@@ -64,6 +65,10 @@ public:
 	//@todo Height and width are need to be used
 	TexturedObject* makeWord(const char* _text, float x_pos, float y_pos, float _fontSize, ID3D11Device* _pDevice);
 	void pushTexturedObject(TexturedObject* _obj);
+	
+	void pushTexturedObject(const char* _name, TexturedObject* _obj);
+	bool removeTexturedObject(const char* _name); // if deletion was succesful return true. False otherwise
+
 	void pushActiveElement(ActiveElement* _obj);
 	void deleteObject(TexturedObject* _obj);
 

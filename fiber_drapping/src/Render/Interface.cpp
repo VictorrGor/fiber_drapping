@@ -191,12 +191,27 @@ TexturedObject* Interface::makeWord(const char* _text, float x_pos, float y_pos,
 		counter += 4;
 	}
 	TexturedObject* res = new TexturedObject(_pDevice, this->pInterfaceVxSh, this->pInterfacePxSh, size * 4, (vec), D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, indices_ctr, indices);
+	delete[] vec;
+	delete[] indices;
 	return res;
 }
 
 void Interface::pushTexturedObject(TexturedObject* _obj)
 {
 	objects.push_back(_obj);
+}
+
+void Interface::pushTexturedObject(const char* _name, TexturedObject* _obj)
+{
+	mObjects.insert(std::pair<const char*, TexturedObject*>(_name, _obj));
+}
+
+bool Interface::removeTexturedObject(const char* _name)
+{
+	auto res = mObjects.find(_name);
+	if (res == mObjects.end()) return false;
+	mObjects.erase(res);
+	return true;
 }
 
 void Interface::pushActiveElement(ActiveElement* _obj)
