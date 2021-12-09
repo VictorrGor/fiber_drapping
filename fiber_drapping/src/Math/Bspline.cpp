@@ -644,55 +644,6 @@ d_vertex** SurfaceDerivsAlg1(const surfInfo* sfI, double u, double v, size_t d)
 }
 
 ///SKL[d+1][d+1]; d - derivation degree
-void SurfaceDerivsAlg1(const surfInfo* sfI, double u, double v, size_t d, d_vertex** SKL)
-{
-	size_t du = min(sfI->p, d);
-	size_t dv = min(sfI->q, d);
-	for (size_t k = sfI->p + 1; k <= d; ++k)
-		for (size_t l = 0; l <= d - k; ++l) SKL[k][l] = d_vertex();
-
-	for (size_t l = sfI->q + 1; l <= d; ++l)
-		for (size_t k = 0; k <= d - l; ++k) SKL[k][l] = d_vertex();
-
-	size_t uspan = FindSpan(sfI->n, sfI->p, u, sfI->Uk, sfI->n + sfI->p + 1);
-	size_t vspan = FindSpan(sfI->m, sfI->q, v, sfI->Vl, sfI->m + sfI->q + 1);
-
-	double** Nu = DersBasisFuns(uspan, u, sfI->p, sfI->n, sfI->Uk);
-	double** Nv = DersBasisFuns(vspan, v, sfI->q, sfI->m, sfI->Vl);
-
-	/*std::cout << "Nu:\n";
-	for (int i = 0; i <= sfI->p; ++i) std::cout << "\ti:" << i << ": " << Nu[1][i] << ";\n";
-	std::cout << "Nv:\n";
-	for (int i = 0; i <= sfI->q; ++i) std::cout << "\ti:" << i << ": " << Nv[1][i] << ";\n";*/
-
-	d_vertex* temp = new d_vertex[sfI->q + 1];
-
-	for (size_t k = 0; k <= du; ++k)
-	{
-		for (size_t s = 0; s <= sfI->q; ++s)
-		{
-			temp[s] = d_vertex();
-			for (size_t r = 0; r <= sfI->p; ++r)
-			{
-				temp[s] = temp[s] + Nu[k][r] * sfI->controlPoints[uspan - sfI->p + r][vspan - sfI->q + s];
-			}
-		}
-		size_t dd = min(d - k, dv);
-		for (size_t l = 0; l <= dd; ++l)
-		{
-			SKL[k][l] = d_vertex();
-			for (size_t s = 0; s <= sfI->q; ++s)
-			{
-				SKL[k][l] = SKL[k][l] + Nv[l][s] * temp[s];
-			}
-		}
-	}
-	for (int i = 0; i <= sfI->n; ++i) delete[] Nu[i];
-	for (int i = 0; i <= sfI->m; ++i) delete[] Nv[i];
-	delete[] Nu;
-	delete[] Nv;
-	delete[] temp;
-}
 
 
 DersBasisFunsInit* initDersBasisFunsStruct(size_t p, size_t n)

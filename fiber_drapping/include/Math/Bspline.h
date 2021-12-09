@@ -78,8 +78,6 @@ DerivationInit* initDerivationInitStruct(const surfInfo* sfI, size_t der_degree)
 void releaseDersBasisFunsStruct(size_t p, size_t n, DersBasisFunsInit* _obj);
 void releaseDerivationInitStruct(const surfInfo* sfI, DerivationInit* _obj);
 
-void SurfaceDerivsAlg1(const surfInfo* sfI, double u, double v, size_t d, d_vertex** SKL);
-
 void SurfaceDerivsAlg1(const surfInfo* sfI, double u, double v, DerivationInit* der_init);
 
 void DersBasisFuns(size_t i, double u, int p, int n, double* U, DersBasisFunsInit* der_bf);
