@@ -29,9 +29,10 @@ d_vertex* CurveDerivateAlg1(splineInfo spi, size_t p, double u, size_t d);
 //p, q - degree spline surface
 //uk, vl - knot vectors
 //Chordal method
-void SurfMeshParams(size_t n, size_t m, d_vertex** Q, double** uk, double** vl);
+void ChordalMeshParams(size_t n, size_t m, d_vertex** Q, double** uk, double** vl);
 
 void CentripetalMeshParams(size_t n, size_t m, d_vertex** Q, double** uk, double** vl);
+void EquallyMeshParams(size_t n, size_t m, d_vertex** Q, double** uk, double** vl);
 
 
 double* getVxCoordByPosNum(d_vertex& vx, size_t num);
@@ -47,11 +48,7 @@ double* computeKnotVector(double* _u, size_t p, size_t n);
 void saveAsTransponsed(d_vertex** mx, size_t n, size_t m, size_t idx, d_vertex* vec);
 
 //Q - n*m vertex array; p, q - spline degree; 
-surfInfo GenInterpBSplineSurface(size_t n, size_t m, d_vertex** Q, size_t p, size_t q);
-
-
-//Q - n*m vertex array; p, q - spline degree; 
-surfInfo GenInterpBSplineSurface_centripetal(size_t n, size_t m, d_vertex** Q, size_t p, size_t q);
+surfInfo GenInterpBSplineSurface(size_t n, size_t m, d_vertex** Q, size_t p, size_t q, void (*paramFunc)(size_t, size_t, d_vertex**, double**, double**));
 
 d_vertex SurfacePoint(const surfInfo* sfI, double u, double v);
 

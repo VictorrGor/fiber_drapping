@@ -360,7 +360,7 @@ d_vertex* CurveDerivateAlg1(splineInfo spi, size_t p, double u, size_t d)
 }
 
 ///@todo Check variables in cycles - incorrect indexes in distance check.
-void SurfMeshParams(size_t n, size_t m, d_vertex** Q, double** uk, double** vl)
+void ChordalMeshParams(size_t n, size_t m, d_vertex** Q, double** uk, double** vl)
 {
 	size_t num = m;
 	(*uk) = new double[n];
@@ -370,7 +370,7 @@ void SurfMeshParams(size_t n, size_t m, d_vertex** Q, double** uk, double** vl)
 
 	for (size_t k = 1; k < n - 1; ++k) (*uk)[k] = 0;
 	double total = 0;
-	double* cds = new double[n];
+	double* cds = new double[(n > m) ? n : m];
 	vec3 diff;
 	for (size_t l = 0; l < m; ++l)
 	{
@@ -417,7 +417,7 @@ void SurfMeshParams(size_t n, size_t m, d_vertex** Q, double** uk, double** vl)
 		total = 0;
 		for (size_t k = 1; k < m; ++k)
 		{
-			diff = subtructAsVec3(Q[k][l], Q[k - 1][l]);
+			diff = subtructAsVec3(Q[l][k], Q[l][k-1]);
 			cds[k] = sqrtf(DirectX::XMVectorGetX(DirectX::XMVector3Dot(DirectX::XMLoadFloat3(&diff), DirectX::XMLoadFloat3(&diff))));
 			total = total + cds[k];
 		}
@@ -449,6 +449,8 @@ void SurfMeshParams(size_t n, size_t m, d_vertex** Q, double** uk, double** vl)
 	delete[] cds;
 }
 
+
+///@todo Total may be 0 - divizion by zero possible
 void CentripetalMeshParams(size_t n, size_t m, d_vertex** Q, double** uk, double** vl)
 {
 	(*uk) = new double[n];
@@ -512,6 +514,20 @@ void CentripetalMeshParams(size_t n, size_t m, d_vertex** Q, double** uk, double
 
 
 	delete[] buf;
+}
+
+void EquallyMeshParams(size_t n, size_t m, d_vertex** Q, double** uk, double** vl)
+{
+	(*uk) = new double[n];
+	(*vl) = new double[m];
+	for (size_t i = 0; i < n; ++i)
+	{
+		(*uk)[i] = (double)i / (n - 1);
+	}
+	for (size_t i = 0; i < m; ++i)
+	{
+		(*vl)[i] = (double)i / (m - 1);
+	}
 }
 
 double* getVxCoordByPosNum(d_vertex& vx, size_t num)
@@ -595,10 +611,10 @@ void saveAsTransponsed(d_vertex** mx, size_t n, size_t m, size_t idx, d_vertex* 
 	}
 }
 
-surfInfo GenInterpBSplineSurface(size_t n, size_t m, d_vertex** Q, size_t p, size_t q)
+surfInfo GenInterpBSplineSurface(size_t n, size_t m, d_vertex** Q, size_t p, size_t q, void(*paramFunc)(size_t, size_t, d_vertex**, double**, double**))
 {
 	double* _uk, * _vl;
-	SurfMeshParams(n, m, Q, &_uk, &_vl); //size of knots: n and m
+	paramFunc(n, m, Q, &_uk, &_vl); //size of knots: n and m
 	double* Uk = computeKnotVector(_uk, p, n);
 	double* Vl = computeKnotVector(_vl, q, m);
 
@@ -620,38 +636,7 @@ surfInfo GenInterpBSplineSurface(size_t n, size_t m, d_vertex** Q, size_t p, siz
 		saveAsTransponsed(P, m, n, l, interpolateCurve(R[l], m, q, _vl, Vl));
 	}
 
-	delete[] _uk;
-	delete[] _vl;
-	delete[] R;
-	surfInfo res(P, n, m, p, q, Uk, Vl);
-	return res;
-}
-
-surfInfo GenInterpBSplineSurface_centripetal(size_t n, size_t m, d_vertex** Q, size_t p, size_t q)
-{
-	double* _uk, * _vl;
-	CentripetalMeshParams(n, m, Q, &_uk, &_vl); //size of knots: n and m
-	double* Uk = computeKnotVector(_uk, p, n);
-	double* Vl = computeKnotVector(_vl, q, m);
-
-	//Interpolate by t coordinate
-	d_vertex** R = new d_vertex * [m];
-	for (size_t i = 0; i < m; ++i) R[i] = new d_vertex[n];
-
-	for (size_t l = 0; l < m; ++l)
-	{
-		saveAsTransponsed(R, n, m, l, interpolateCurve(Q[l], n, p, _uk, Uk));
-	}
-
-	//Interpolate by tau coordinate
-	d_vertex** P = new d_vertex * [n];
-	for (size_t i = 0; i < n; ++i) P[i] = new d_vertex[m];
-
-	for (size_t l = 0; l < n; ++l)
-	{
-		saveAsTransponsed(P, m, n, l, interpolateCurve(R[l], m, q, _vl, Vl));
-	}
-
+	for (size_t i = 0; i < m; ++i) delete[] R[i];
 	delete[] _uk;
 	delete[] _vl;
 	delete[] R;
