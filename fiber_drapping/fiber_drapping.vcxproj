@@ -173,6 +173,7 @@
     <ClInclude Include="include\Scene.h" />
     <ClInclude Include="include\Render\Utils.h" />
     <ClInclude Include="include\Render\Vertex.h" />
+    <ClInclude Include="include\TimeBench.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Math\Bspline.cpp" />

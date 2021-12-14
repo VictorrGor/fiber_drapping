@@ -157,7 +157,7 @@ void generateSphere(RenderSys* _rs, ID3D11Device* _pDevice, ID3D11VertexShader* 
 	//Object* pts_raw = new Object(_pDevice, _pVxSh, _pPxSh, step_cnt_fi * step_cnt_teta, convert2DimArrayTo1(pts, step_cnt_fi, step_cnt_teta), D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
 	//_rs->pushObject(pts_raw);
 
-	surfInfo sfi = GenInterpBSplineSurface(step_cnt_fi, step_cnt_teta, pts, 3, 3);
+	surfInfo sfi = GenInterpBSplineSurface(step_cnt_fi, step_cnt_teta, pts, 3, 3, CentripetalMeshParams);
 
 	_rs->drawLineOnBSplineSurface(&sfi, 0, 0, true);
 	_rs->drawLineOnBSplineSurface(&sfi, 0.25, 0, true);
@@ -202,7 +202,7 @@ void generateSurfaceByBSpline(RenderSys* _rs, ID3D11Device* _pDevice, ID3D11Vert
 	vertex** P;
 	int size_u = 100;
 	int size_v = 100;
-	surfInfo surf_inf = GenInterpBSplineSurface(size_n, size_m, Q, 2, 2);//BSplineSurface(size_n, size_m, Q, 3, 3, &U, &V, &P, size_u, size_v);
+	surfInfo surf_inf = GenInterpBSplineSurface(size_n, size_m, Q, 2, 2, CentripetalMeshParams);//BSplineSurface(size_n, size_m, Q, 3, 3, &U, &V, &P, size_u, size_v);
 	//GlobalAproximationBSpline(size_n, size_m, Q, 3, 3, 20, 20, &U, &V, &P);
 	//Surfa
 
@@ -246,7 +246,7 @@ void testPlane(RenderSys* _rs, ID3D11Device* _pDevice, ID3D11VertexShader* _pVxS
 
 	double* _uk = new double[pointCnt + p];
 	double* _vl = new double[pointCnt + q];
-	SurfMeshParams(pointCnt, pointCnt, Q, &_uk, &_vl);
+	ChordalMeshParams(pointCnt, pointCnt, Q, &_uk, &_vl);
 	double* Uk = computeKnotVector(_uk, p, pointCnt);
 	double* Vl = computeKnotVector(_vl, q, pointCnt);
 	size_t m = pointCnt + p + 1;
@@ -291,4 +291,46 @@ void testPlane(RenderSys* _rs, ID3D11Device* _pDevice, ID3D11VertexShader* _pVxS
 	drappingInit is = { &si, 0, 0.5, true, 0, 0, false, A, B, gird_size};
 	//makeDrappedGird(_rs, is);
 
+}
+
+void cornerDrapping(RenderSys* _rs, ID3D11Device* _pDevice, ID3D11VertexShader* _pVxSh, ID3D11PixelShader* _pPxSh)
+{
+	size_t gird_size = 90;
+	size_t half_gird_size = gird_size / 2;
+	vertex** r_gird = new vertex* [gird_size];
+	d_vertex** gird = new d_vertex* [gird_size];
+
+	double step_i = 1. / (gird_size - 1);
+	double step_j = 1. / (gird_size );
+	for (size_t i = 0; i < gird_size; ++i)
+	{
+		r_gird[i] = new vertex[gird_size];
+		gird[i] = new d_vertex[gird_size];
+		
+		for (int j = 0; j < half_gird_size; ++j)
+		{
+			r_gird[i][j].pos = vec3(-0.5 + i * step_i, 0.5 - j * 0.5 / (half_gird_size - 1), 0);
+			gird[i][j] =           {-0.5 + i * step_i, 0.5 - j * 0.5 / (half_gird_size - 1), 0};
+			std::cout << i << ", " << j << ": x: " << gird[i][j].x << " y: " << gird[i][j].y << " z: " << gird[i][j].z << ";\n";
+		}
+		for (int j = half_gird_size; j < gird_size; ++j)
+		{
+			r_gird[i][j].pos = vec3(-0.5 + i * step_i, 0, 0 + (j-half_gird_size+1) * step_j);
+			gird[i][j]       =     {-0.5 + i * step_i, 0, 0 + (j-half_gird_size+1) * step_j};
+			std::cout << i << ", " << j << ": x: " << gird[i][j].x << " y: " << gird[i][j].y << " z: " << gird[i][j].z << ";\n";
+		}
+	}
+
+	Object* obj = new Object(_pDevice, _pVxSh, _pPxSh, gird_size * gird_size, convert2DimArrayTo1(r_gird, gird_size, gird_size), D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+	_rs->pushObject(obj);
+	
+	surfInfo si = GenInterpBSplineSurface(gird_size, gird_size, gird, 3, 3, CentripetalMeshParams);
+	_rs->drawLineOnBSplineSurface(&si, 0, 0, false);
+	_rs->drawLineOnBSplineSurface(&si, 0, 0, true);
+	//
+	size_t spline_gird_size = 300;
+	double A = 1. / (spline_gird_size - 1);
+	double B = 1. / (spline_gird_size - 1);
+	drappingInit is = { &si, 0, 0, true, 0, 0, false, A, B, spline_gird_size };
+	makeDrappedGird_paralled(_rs, is);
 }

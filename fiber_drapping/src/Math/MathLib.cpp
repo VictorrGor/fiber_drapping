@@ -34,7 +34,10 @@ void LUDecomposition(double** A, size_t q, double*** L, double*** U)
 				for (int k = 0; k < i; ++k)
 					sum += (*L)[i][k] * (*U)[k][j];
 
-				if (!(*L)[i][i]) throw "LUDecomposition: division by zero!";
+				if (!(*L)[i][i])
+				{
+					throw "LUDecomposition: division by zero!";
+				}
 				(*U)[i][j] = (A[i][j] - sum) / (*L)[i][i];
 			}
 			else

@@ -389,7 +389,7 @@ HRESULT RenderSys::InitObjects()
 	HRESULT hRes = S_OK;
 	//Generate Light points
 	PointLight* pl = new PointLight();
-	pl->Position = vec3(0.0, 3, 0);
+	pl->Position = vec3(1, 2, 1.5);
 	pl->Range = 20.;
 	pl->Ambient = vec4(0.5, 0.5, 0.5, 1);
 	pl->Diffuse = vec4(1., 1., 1., 1);
@@ -399,8 +399,8 @@ HRESULT RenderSys::InitObjects()
 
 	//testPlane(this, this->g_pd3dDevice, pVxSh, pPxSh);
 	//generateSurfaceByBSpline(this, this->g_pd3dDevice, pVxSh, pPxSh);
-	generateSphere(this, g_pd3dDevice, pVxSh, pPxSh);
-	
+	//generateSphere(this, g_pd3dDevice, pVxSh, pPxSh);
+	cornerDrapping(this, g_pd3dDevice, pVxSh, pPxSh);
 	//drawSinSurf(this, this->g_pd3dDevice, pVxSh, pPxSh);
 	//drawSinSurf(this, g_pd3dDevice, pVxSh, pPxSh);
 	//lighting_test(this, g_pd3dDevice, pVxSh, pPxSh);

@@ -313,8 +313,8 @@ void makeDrappedGird(RenderSys* _rs, const drappingInit& _is)
 					ptIJ->u = -1;
 					ptIJ->v = -1;
 					++err_ct;
-					//std::cout << err_ct << "\n";
-					//std::cout << "\ti:" << i << "; j:" << j << "\n";
+					std::cout << err_ct << "\n";
+					std::cout << "\ti:" << i << "; j:" << j << "\n";
 				}
 #ifdef _DEBUG
 				else

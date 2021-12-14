@@ -1,7 +1,7 @@
 // This is a personal academic project. Dear PVS-Studio, please check it.
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
 #define DEBUG_CONSOLE
-#define NO_LOG_ALL_OUTPUT
+#define LOG_ALL_OUTPUT
 #include "Render/Render.h"
 
 #include "Render/Utils.h"
