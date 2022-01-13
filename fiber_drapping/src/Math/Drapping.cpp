@@ -4,8 +4,8 @@
 
 void getF(double* f, const d_vertex* ptIJ, const d_vertex* ptIm1J, const d_vertex* ptIJm1, double A, double B)
 {
-	f[0] = -(pow((ptIJ->x - ptIm1J->x), 2) + pow((ptIJ->y - ptIm1J->y), 2) + pow((ptIJ->z - ptIm1J->z), 2) - pow(B, 2));
-	f[1] = -(pow((ptIJ->x - ptIJm1->x), 2) + pow((ptIJ->y - ptIJm1->y), 2) + pow((ptIJ->z - ptIJm1->z), 2) - pow(A, 2));
+	f[0] = -(pow((ptIJ->x - ptIm1J->x), 2) + pow((ptIJ->y - ptIm1J->y), 2) + pow((ptIJ->z - ptIm1J->z), 2) - pow(A, 2));
+	f[1] = -(pow((ptIJ->x - ptIJm1->x), 2) + pow((ptIJ->y - ptIJm1->y), 2) + pow((ptIJ->z - ptIJm1->z), 2) - pow(B, 2));
 }
 
 void getJakobain(double* W, const bSplinePt* ptIJ, const bSplinePt* ptIm1J, const bSplinePt* ptIJm1, const d_vertex* const* IJder)
@@ -164,8 +164,8 @@ void generateInitialLines(bSplinePt* P, d_vertex* Q, const drappingInit& _is)
 		Q[i * _is.gird_size] = SurfacePoint(_is.sfI, P[i * _is.gird_size].u, P[i * _is.gird_size].v);
 		Q[i] = SurfacePoint(_is.sfI, P[i].u, P[i].v);
 #ifdef _DEBUG
-		std::cout << "i: " << i << ";\n\t(Q[0][i];Q[0][i - 1]) dist is: " << getDistance(Q[i], Q[i - 1]) << "\n";
-		std::cout << "\t(Q[i][0];Q[i-1][0]) dist is: " << getDistance(Q[i * _is.gird_size], Q[(i - 1) * _is.gird_size]) << "\n";
+		std::cout << "i: " << i << ";\n\t(Q[0][i];Q[0][i - 1]) dist is: " << getDistance(Q[i], Q[i - 1]) << "; Param: " << max(P[i].u - P[i - 1].u, P[i].v - P[i - 1].v) << "\n";
+		std::cout << "\t(Q[i][0];Q[i-1][0]) dist is: " << getDistance(Q[i * _is.gird_size], Q[(i - 1) * _is.gird_size]) << "; Param: " << max(P[i * _is.gird_size].u - P[(i - 1) * _is.gird_size].u, P[i * _is.gird_size].v - P[(i - 1) * _is.gird_size].v) << "\n";
 #endif
 	}
 }
@@ -178,7 +178,7 @@ bool getBSplineDrapPoint(double* W, double* invW, drappingCell& cell, drapPointI
 
 	size_t dim = 2;
 
-	double epsilon = 0.0001; // Варьировать сравнение ошибки в зависимости от накопленной ошибки. Т.е. если накопилась большая ошибка, то уменьшать макисмально взоможную, или прижимать в другую сторону
+	double epsilon = 0.0001; 
 	double len = 100000;
 
 	while (flag && (maxIterCt > i))
@@ -221,8 +221,8 @@ bool getBSplineDrapPoint(double* W, double* invW, drappingCell& cell, drapPointI
 		cell.ptIJ->v += _is->dx[1];
 		(*cell.ptIJ->pt) = SurfacePoint(cell.si->sfI, cell.ptIJ->u, cell.ptIJ->v);
 
-		if ((fabs(getDistance(*cell.ptIJ->pt, *cell.ptIJm1->pt) - cell.si->A) < cell.si->A * epsilon)
-			&& (fabs(getDistance(*cell.ptIJ->pt, *cell.ptIm1J->pt) - cell.si->B) < cell.si->B * epsilon))
+		if ((abs(getDistance(*cell.ptIJ->pt, *cell.ptIJm1->pt) - cell.si->B) < cell.si->B * epsilon)
+			&& (abs(getDistance(*cell.ptIJ->pt, *cell.ptIm1J->pt) - cell.si->A) < cell.si->A * epsilon))
 		{
 			flag = false;
 			break;
@@ -268,6 +268,19 @@ void makeDrappedGird(RenderSys* _rs, const drappingInit& _is)
 		TimeBench tb;
 #endif
 		generateInitialLines(P, Q, _is);
+		double sumI_1J = 0, sumIJ_1 = 0;
+		for (int i = 1; i < _is.gird_size; ++i)
+		{
+			sumIJ_1 += getDistance(Q[i], Q[i - 1]);
+			sumI_1J += getDistance(Q[(i) * _is.gird_size], Q[(i - 1) * _is.gird_size]);
+		}
+		std::cout << "SumIJ_1: " << sumIJ_1 << ";\nSumI_1J: " << sumI_1J << ";\n";
+		//d_vertex dummy = SurfacePoint(_is.sfI, )
+		//std::cout << "End: " << getDistance(dummy, [(_is.gird_size - 1)*_is.gird_size]);
+		std::cout << "Q[0][gs]\n\tx: " << Q[_is.gird_size - 1].x << "; y: " << Q[_is.gird_size - 1].y << "; z: " << Q[_is.gird_size - 1].z << "\n";
+		std::cout << "\tu: " << P[_is.gird_size - 1].u << "; v: " << P[_is.gird_size - 1].v << "\n";
+		std::cout << "Q[gs][0]\n\tx: " << Q[(_is.gird_size - 1)*_is.gird_size].x << "; y: " << Q[(_is.gird_size - 1) * _is.gird_size].y << "; z: " << Q[(_is.gird_size - 1) * _is.gird_size].z << "\n";
+		std::cout << "\tu: " << P[(_is.gird_size - 1) * _is.gird_size].u << "; v: " << P[(_is.gird_size - 1) * _is.gird_size].v << "\n";
 		drapPointInit* drapMem = initDrapPointInitStruct(_is.sfI, dim, 1);
 		for (UINT i = 0; i < size - 1; ++i)
 		{
@@ -300,7 +313,7 @@ void makeDrappedGird(RenderSys* _rs, const drappingInit& _is)
 				(*ptIJ->pt) = SurfacePoint(_is.sfI, ptIJ->u, ptIJ->v);
 
 #ifdef _DEBUG
-				std::cout << "\ti:" << i << "; j:" << j << "\n";
+				std::cout << "i:" << i << "; j:" << j << "\n";
 #endif
 				if (!getBSplineDrapPoint(W, invW, cell, drapMem))
 				{

@@ -207,10 +207,12 @@ void LUForwardBackward(double* L, double* U, double* b, size_t q, double* res, d
 
 double bisectionU(const surfInfo* sfI, const bSplinePt& Pij, const bSplinePt& Pim1j, double b, double eps, double A)
 {
+	b = min(Pim1j.u + 0.25, 1);
 	bSplinePt ya(Pij), yb(Pim1j);
 	d_vertex vx_a, vx_b, vx_midle;
 	double dist_a, dist_b, dist_middle, a = Pim1j.u, d = b-a, middle;
 
+	if (a - b > eps ) throw("bisectionU singbit(dist1) == signbit(dist2)"); ///@todo If this exception was thrown, than use different method(such Newton)
 	ya.u = a;
 	yb.u = b;
 	ya.pt = &vx_a;
@@ -222,6 +224,7 @@ double bisectionU(const surfInfo* sfI, const bSplinePt& Pij, const bSplinePt& Pi
 	dist_b = getDistance(*yb.pt, *Pim1j.pt) - A;
 	if (signbit(dist_a) == signbit(dist_b)) 
 	{
+		//if (b * 0.9 > a) return bisectionU(sfI, Pij, Pim1j, b *0.9, eps, A); ///@todo It's a crutch.
 		if (dist_b < eps) return 1.;
 		throw("bisectionU singbit(dist1) == signbit(dist2)"); ///@todo If this exception was thrown, than use different method(such Newton)
 	}
@@ -242,6 +245,7 @@ double bisectionU(const surfInfo* sfI, const bSplinePt& Pij, const bSplinePt& Pi
 
 double bisectionV(const surfInfo* sfI, const bSplinePt& Pij, const bSplinePt& Pijm1, double b, double eps, double B)
 {
+	b = min(Pijm1.v + 0.25, 1.);
 	bSplinePt ya(Pij), yb(Pijm1);
 	d_vertex vx_a, vx_b, vx_midle;
 	double dist_a, dist_b, dist_middle, a = Pijm1.v, d = b - a, middle;
@@ -257,6 +261,7 @@ double bisectionV(const surfInfo* sfI, const bSplinePt& Pij, const bSplinePt& Pi
 	dist_b = getDistance(*yb.pt, *Pijm1.pt) - B;
 	if (signbit(dist_a) == signbit(dist_b))
 	{
+		//if (b * 0.9 > a) return bisectionU(sfI, Pij, Pijm1, b * 0.9, eps, B); ///@todo It's a crutch.
 		if (dist_b < eps) return 1.;
 		throw("bisectionV singbit(dist1) == signbit(dist2)"); ///@todo If this exception was thrown, than use different method(such Newton)
 	}
@@ -273,4 +278,64 @@ double bisectionV(const surfInfo* sfI, const bSplinePt& Pij, const bSplinePt& Pi
 	} while (fabs(dist_middle) > eps);
 
 	return middle;
+}
+
+double getBsplineLineLength(surfInfo* sfi, double u, double v, bool isU)
+{
+	double res = 0;
+	double t;
+	size_t N = 1000;
+	DerivationInit* der = initDerivationInitStruct(sfi, 1);
+	if (isU)
+	{
+		t = v;
+		double step = (1. - v) / (2*N);
+		double odd_sum = 0, even_sum = 0;
+
+		SurfaceDerivsAlg1(sfi, u, t, der);
+		res = sqrt(pow(der->SKL[0][1].x, 2) + pow(der->SKL[0][1].y, 2) + pow(der->SKL[0][1].z, 2));
+		SurfaceDerivsAlg1(sfi, u, 1, der);
+		res += sqrt(pow(der->SKL[0][1].x, 2) + pow(der->SKL[0][1].y, 2) + pow(der->SKL[0][1].z, 2));
+
+		for (int i = 1; i < N; ++i)
+		{
+			SurfaceDerivsAlg1(sfi, u, v + step * (2 * i - 1), der);
+			odd_sum += sqrt(pow(der->SKL[0][1].x, 2) + pow(der->SKL[0][1].y, 2) + pow(der->SKL[0][1].z, 2));
+
+			SurfaceDerivsAlg1(sfi, u, v + step * 2 * i , der);
+			even_sum += sqrt(pow(der->SKL[0][1].x, 2) + pow(der->SKL[0][1].y, 2) + pow(der->SKL[0][1].z, 2));
+		}
+		SurfaceDerivsAlg1(sfi, u, v + (2 * N - 1) * step, der);
+		odd_sum += sqrt(pow(der->SKL[0][1].x, 2) + pow(der->SKL[0][1].y, 2) + pow(der->SKL[0][1].z, 2));
+
+		res += odd_sum * 4 + even_sum * 2;
+		res *= (1 - v) / (6 * N);
+	}
+	else
+	{
+		t = u;
+		double step = (1. - u) / (2*N);
+		double odd_sum = 0, even_sum = 0;
+
+		SurfaceDerivsAlg1(sfi, t, v, der);
+		res = sqrt(pow(der->SKL[1][0].x, 2) + pow(der->SKL[1][0].y, 2) + pow(der->SKL[1][0].z, 2));
+		SurfaceDerivsAlg1(sfi, 1, v, der);
+		res += sqrt(pow(der->SKL[1][0].x, 2) + pow(der->SKL[1][0].y, 2) + pow(der->SKL[1][0].z, 2));
+
+		for (int i = 1; i < N; ++i)
+		{
+			SurfaceDerivsAlg1(sfi, u + (2 * i - 1) * step, v, der);
+			odd_sum += sqrt(pow(der->SKL[1][0].x, 2) + pow(der->SKL[1][0].y, 2) + pow(der->SKL[1][0].z, 2));
+
+			SurfaceDerivsAlg1(sfi, u + 2 * i * step, v, der);
+			even_sum += sqrt(pow(der->SKL[1][0].x, 2) + pow(der->SKL[1][0].y, 2) + pow(der->SKL[1][0].z, 2));
+		}
+		SurfaceDerivsAlg1(sfi, u + (2 * N - 1) * step, v, der);
+		odd_sum += sqrt(pow(der->SKL[1][0].x, 2) + pow(der->SKL[1][0].y, 2) + pow(der->SKL[1][0].z, 2));
+
+		res += odd_sum * 4 + even_sum * 2;
+		res *= (1 - v) / (6 * N);
+	}
+	releaseDerivationInitStruct(sfi, der);
+	return res;
 }

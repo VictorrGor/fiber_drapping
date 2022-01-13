@@ -295,35 +295,247 @@ void testPlane(RenderSys* _rs, ID3D11Device* _pDevice, ID3D11VertexShader* _pVxS
 
 void cornerDrapping(RenderSys* _rs, ID3D11Device* _pDevice, ID3D11VertexShader* _pVxSh, ID3D11PixelShader* _pPxSh)
 {
-	size_t gird_size = 90;
+	size_t gird_size = 120;
 	size_t half_gird_size = gird_size / 2;
+	size_t quater_gs = gird_size / 4;
+
+
 	vertex** r_gird = new vertex* [gird_size];
 	d_vertex** gird = new d_vertex* [gird_size];
 
 	double step_i = 1. / (gird_size - 1);
 	double step_j = 1. / (gird_size );
+
+	double edge_size = 0.5;
+
+	int N_TST = 4;
+	if (N_TST == 1)
+	{
+		for (size_t i = 0; i < gird_size; ++i)
+		{
+			r_gird[i] = new vertex[gird_size];
+			gird[i] = new d_vertex[gird_size];
+			for (size_t j = 0; j < gird_size; ++j)
+			{
+				r_gird[i][j].pos = vec3(j * edge_size / (gird_size - 1), 0, i * edge_size / (gird_size - 1));
+				gird[i][j] = { j * edge_size / (gird_size - 1), 0, i * edge_size / (gird_size - 1) };
+			}
+		}
+	}
+	if (N_TST == 2)
+	{
+		if (gird_size % 2 != 0) throw "Incorrect size of gird_size! Must be a multiple of two \n";
+		double x, y, z;
+		for (size_t i = 0; i < gird_size / 2; ++i)
+		{
+			r_gird[i] = new vertex[gird_size];
+			gird[i] = new d_vertex[gird_size];
+			for (size_t j = 0; j < gird_size; ++j)
+			{
+				x = j * edge_size / (gird_size - 1) ;
+				y = 0;
+				z = i * edge_size / (gird_size / 2);
+				r_gird[i][j].pos = vec3(x, y, z);
+				gird[i][j] = {x, y, z };
+			}
+		}
+		for (size_t i = gird_size / 2; i < gird_size; ++i)
+		{
+			r_gird[i] = new vertex[gird_size];
+			gird[i] = new d_vertex[gird_size];
+			for (size_t j = 0; j < gird_size; ++j)
+			{
+				x = j * edge_size / (gird_size - 1);
+				y = (i - gird_size / 2 ) * edge_size / (gird_size / 2 - 1);
+				z = edge_size;
+				r_gird[i][j].pos = vec3(x, y, z);
+				gird[i][j] = { x, y, z };
+			}
+		}
+	}
+	if (N_TST == 3)
+	{
+		if (gird_size % 3 != 0) throw "Incorrect size of gird_size! Must be a multiple of three \n";
+		double x, y, z;
+		for (size_t i = 0; i < gird_size / 3; ++i)
+		{
+			r_gird[i] = new vertex[gird_size];
+			gird[i] = new d_vertex[gird_size];
+			for (size_t j = 0; j < gird_size; ++j)
+			{
+				x = j * edge_size / (gird_size - 1);
+				y = 0;
+				z = i * edge_size / (gird_size / 3);
+				r_gird[i][j].pos = vec3(x, y, z);
+				gird[i][j] = { x, y, z };
+			}
+		}
+		for (size_t i = gird_size / 3; i < gird_size / 3 * 2; ++i)
+		{
+			r_gird[i] = new vertex[gird_size];
+			gird[i] = new d_vertex[gird_size];
+			for (size_t j = 0; j < gird_size; ++j)
+			{
+				x = j * edge_size / (gird_size - 1);
+				y = (i - gird_size / 3) * edge_size / (gird_size / 3);
+				z = edge_size;
+				r_gird[i][j].pos = vec3(x, y, z);
+				gird[i][j] = { x, y, z };
+			}
+		}
+		for (size_t i = 2 * gird_size / 3; i < gird_size; ++i)
+		{
+			r_gird[i] = new vertex[gird_size];
+			gird[i] = new d_vertex[gird_size];
+			for (size_t j = 0; j < gird_size; ++j)
+			{
+				x = j * edge_size / (gird_size - 1);
+				y = edge_size;
+				z = edge_size - (i - 2 * gird_size / 3) * edge_size / (gird_size / 3 - 1);
+				r_gird[i][j].pos = vec3(x, y, z);
+				gird[i][j] = { x, y, z };
+			}
+		}
+	}
+
+	if (N_TST == 4)
+	{
+		if (gird_size % 4 != 0) throw "Incorrect size of gird_size! Must be a multiple of four \n";
+		double x, y, z;
+		for (size_t i = 0; i < quater_gs; ++i)
+		{
+			r_gird[i] = new vertex[gird_size];
+			gird[i] = new d_vertex[gird_size];
+			for (size_t j = 0; j < gird_size; ++j)
+			{
+				x = j * edge_size / (gird_size - 1);
+				y = 0;
+				z = i * edge_size / (quater_gs);
+				r_gird[i][j].pos = vec3(x, y, z);
+				gird[i][j] = { x, y, z };
+			}
+		}
+		for (size_t i = quater_gs; i < 2 * quater_gs; ++i)
+		{
+			r_gird[i] = new vertex[gird_size];
+			gird[i] = new d_vertex[gird_size];
+			for (size_t j = 0; j < gird_size; ++j)
+			{
+				x = j * edge_size / (gird_size - 1);
+				y = (i - quater_gs) * edge_size / (quater_gs);
+				z = edge_size;
+				r_gird[i][j].pos = vec3(x, y, z);
+				gird[i][j] = { x, y, z };
+			}
+		}
+		for (size_t i = 2 * quater_gs; i < 3 * quater_gs; ++i)
+		{
+			r_gird[i] = new vertex[gird_size];
+			gird[i] = new d_vertex[gird_size];
+			for (size_t j = 0; j < gird_size; ++j)
+			{
+				x = j * edge_size / (gird_size - 1);
+				y = edge_size;
+				z = edge_size - (i - 2 * quater_gs) * edge_size / (quater_gs);
+				r_gird[i][j].pos = vec3(x, y, z);
+				gird[i][j] = { x, y, z };
+			}
+		}
+		for (size_t i = 3 * quater_gs; i < gird_size; ++i)
+		{
+			r_gird[i] = new vertex[gird_size];
+			gird[i] = new d_vertex[gird_size];
+			for (size_t j = 0; j < gird_size; ++j)
+			{
+				x = j * edge_size / (gird_size - 1);
+				y = edge_size - (i - 3 * quater_gs) * edge_size / (quater_gs - 1);
+				z = 0;
+				r_gird[i][j].pos = vec3(x, y, z);
+				gird[i][j] = { x, y, z };
+			}
+		}
+	}
+
+	
+
+
+
+	for (int i = 0; i < gird_size; ++i)
+	{
+		for (int j = 0; j < gird_size; ++j)
+		{
+			//std::cout << i << " " << j << ": \n\t" << gird[i][j].x << " " << gird[i][j].y << " " << gird[i][j].z << "\n";
+		}
+	}
+
+	//for (size_t i = 0; i < gird_size; ++i)
+	//{
+	//	//r_gird[i] = new vertex[gird_size];
+	//	//gird[i] = new d_vertex[gird_size];
+	//	
+	//	for (int j = 0; j < half_gird_size; ++j)
+	//	{
+	//		r_gird[i][j].pos = vec3(-0.5 + i * step_i, 0.5 - j * 0.5 / (half_gird_size - 1), 0);
+	//		gird[i][j] =           {-0.5 + i * step_i, 0.5 - j * 0.5 / (half_gird_size - 1), 0};
+	//		std::cout << i << ", " << j << ": x: " << gird[i][j].x << " y: " << gird[i][j].y << " z: " << gird[i][j].z << ";\n";
+	//	}
+	//	for (int j = half_gird_size; j < gird_size; ++j)
+	//	{
+	//		r_gird[i][j].pos = vec3(-0.5 + i * step_i, 0, 0 + (j-half_gird_size+1) * step_j);
+	//		gird[i][j]       =     {-0.5 + i * step_i, 0, 0 + (j-half_gird_size+1) * step_j};
+	//		std::cout << i << ", " << j << ": x: " << gird[i][j].x << " y: " << gird[i][j].y << " z: " << gird[i][j].z << ";\n";
+	//	}
+	//}
+
+	Object* obj = new Object(_pDevice, _pVxSh, _pPxSh, gird_size * gird_size, convert2DimArrayTo1(r_gird, gird_size, gird_size), D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+	_rs->pushObject(obj);
+	
+	surfInfo si = GenInterpBSplineSurface(gird_size, gird_size, gird, 3, 3, CentripetalMeshParams);
+	_rs->drawLineOnBSplineSurface(&si, 0, 0, false);
+	double bigLineSize = getBsplineLineLength(&si, 0, 0, false);
+	_rs->drawLineOnBSplineSurface(&si, 0, 0, true);
+	double smallLineSize = getBsplineLineLength(&si, 0, 0, true);
+	std::cout << "Big Line Length: " << bigLineSize << "\n";
+	//
+	size_t spline_gird_size = 1000;
+	double A = bigLineSize / (spline_gird_size - 1);
+	double B = smallLineSize / (spline_gird_size - 1);
+	
+	drappingInit is = { &si, 0, 0, true, 0, 0, false, A, B, spline_gird_size };
+	makeDrappedGird(_rs, is);
+}
+
+void oldCornerDrapping(RenderSys* _rs, ID3D11Device* _pDevice, ID3D11VertexShader* _pVxSh, ID3D11PixelShader* _pPxSh)
+{
+	size_t gird_size = 90;
+	size_t half_gird_size = gird_size / 2;
+	vertex** r_gird = new vertex * [gird_size];
+	d_vertex** gird = new d_vertex * [gird_size];
+
+	double step_i = 1. / (gird_size - 1);
+	double step_j = 1. / (gird_size);
 	for (size_t i = 0; i < gird_size; ++i)
 	{
 		r_gird[i] = new vertex[gird_size];
 		gird[i] = new d_vertex[gird_size];
-		
+
 		for (int j = 0; j < half_gird_size; ++j)
 		{
 			r_gird[i][j].pos = vec3(-0.5 + i * step_i, 0.5 - j * 0.5 / (half_gird_size - 1), 0);
-			gird[i][j] =           {-0.5 + i * step_i, 0.5 - j * 0.5 / (half_gird_size - 1), 0};
-			std::cout << i << ", " << j << ": x: " << gird[i][j].x << " y: " << gird[i][j].y << " z: " << gird[i][j].z << ";\n";
+			gird[i][j] = { -0.5 + i * step_i, 0.5 - j * 0.5 / (half_gird_size - 1), 0 };
+			//std::cout << i << ", " << j << ": x: " << gird[i][j].x << " y: " << gird[i][j].y << " z: " << gird[i][j].z << ";\n";
 		}
 		for (int j = half_gird_size; j < gird_size; ++j)
 		{
-			r_gird[i][j].pos = vec3(-0.5 + i * step_i, 0, 0 + (j-half_gird_size+1) * step_j);
-			gird[i][j]       =     {-0.5 + i * step_i, 0, 0 + (j-half_gird_size+1) * step_j};
-			std::cout << i << ", " << j << ": x: " << gird[i][j].x << " y: " << gird[i][j].y << " z: " << gird[i][j].z << ";\n";
+			r_gird[i][j].pos = vec3(-0.5 + i * step_i, 0, 0 + (j - half_gird_size + 1) * step_j);
+			gird[i][j] = { -0.5 + i * step_i, 0, 0 + (j - half_gird_size + 1) * step_j };
+			//std::cout << i << ", " << j << ": x: " << gird[i][j].x << " y: " << gird[i][j].y << " z: " << gird[i][j].z << ";\n";
 		}
 	}
 
 	Object* obj = new Object(_pDevice, _pVxSh, _pPxSh, gird_size * gird_size, convert2DimArrayTo1(r_gird, gird_size, gird_size), D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
 	_rs->pushObject(obj);
-	
+
 	surfInfo si = GenInterpBSplineSurface(gird_size, gird_size, gird, 3, 3, CentripetalMeshParams);
 	_rs->drawLineOnBSplineSurface(&si, 0, 0, false);
 	_rs->drawLineOnBSplineSurface(&si, 0, 0, true);
