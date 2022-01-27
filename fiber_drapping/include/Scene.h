@@ -23,3 +23,5 @@ void testPlane(RenderSys* _rs, ID3D11Device* _pDevice, ID3D11VertexShader* _pVxS
 void cornerDrapping(RenderSys* _rs, ID3D11Device* _pDevice, ID3D11VertexShader* _pVxSh, ID3D11PixelShader* _pPxSh);
 
 void oldCornerDrapping(RenderSys* _rs, ID3D11Device* _pDevice, ID3D11VertexShader* _pVxSh, ID3D11PixelShader* _pPxSh);
+
+void cylinderDrapping(RenderSys* _rs, ID3D11Device* _pDevice, ID3D11VertexShader* _pVxSh, ID3D11PixelShader* _pPxSh);

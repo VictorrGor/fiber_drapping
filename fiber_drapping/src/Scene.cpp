@@ -546,3 +546,109 @@ void oldCornerDrapping(RenderSys* _rs, ID3D11Device* _pDevice, ID3D11VertexShade
 	drappingInit is = { &si, 0, 0, true, 0, 0, false, A, B, spline_gird_size };
 	makeDrappedGird_paralled(_rs, is);
 }
+
+void cylinderDrapping(RenderSys* _rs, ID3D11Device* _pDevice, ID3D11VertexShader* _pVxSh, ID3D11PixelShader* _pPxSh)
+{
+	size_t gird_size = 15;
+	vertex** r_gird = new vertex * [gird_size];
+	d_vertex** gird = new d_vertex * [gird_size];
+	double R = 0.7;
+	double H = 2.;
+	double shpangout_H = 0.2;
+	double shpangout_W = 0.2;
+
+	for (size_t i = 0; i < gird_size; ++i)
+	{
+		r_gird[i] = new vertex[gird_size];
+		gird[i] = new d_vertex[gird_size];
+	}
+
+	if (gird_size % 5) throw "cylinderDrapping: Incorrect GirdSize!";
+	double x = 0, y = 0, z = 0;
+	for (size_t i = 0; i < gird_size; ++i)
+	{
+		for (size_t j = 0; j < gird_size/5; ++j)
+		{
+			x = R * cos(XM_PI / (gird_size - 1) * i);
+			y = j * (H / 2 - shpangout_W) / (gird_size / 5);
+			z = R * sin(XM_PI / (gird_size - 1) * i);
+
+			r_gird[i][j].pos = vec3(x, y, z);
+			gird[i][j] = { x, y, z };
+		}
+		double shpangout_coord = (H / 2 - shpangout_W);
+		double actualR;
+		for (size_t j = gird_size / 5; j < gird_size * 2 / 5; ++j)
+		{
+			actualR = R - shpangout_H * (j - gird_size / 5) / (gird_size / 5);
+			x = actualR * cos(XM_PI / (gird_size - 1) * i);
+			y = shpangout_coord;
+			z = actualR * sin(XM_PI / (gird_size - 1) * i);
+
+			r_gird[i][j].pos = vec3(x, y, z);
+			gird[i][j] = { x, y, z };
+		}
+		actualR = R - shpangout_H;
+		for (size_t j = 2 * gird_size / 5 ; j < gird_size * 3 / 5; ++j)
+		{
+			x = actualR * cos(XM_PI / (gird_size - 1) * i);
+			y = shpangout_coord + shpangout_W * (j - 2 * gird_size / 5) / (gird_size / 5);
+			z = actualR * sin(XM_PI / (gird_size - 1) * i);
+
+			r_gird[i][j].pos = vec3(x, y, z);
+			gird[i][j] = { x, y, z };
+		}
+		shpangout_coord += shpangout_W;
+		for (size_t j = 3 * gird_size / 5; j < gird_size * 4 / 5; ++j)
+		{
+			actualR = R - shpangout_H * (j - 3 * gird_size / 5) / (gird_size / 5);
+			x = actualR * cos(XM_PI / (gird_size - 1) * i);
+			y = shpangout_coord;
+			z = actualR * sin(XM_PI / (gird_size - 1) * i);
+
+			r_gird[i][j].pos = vec3(x, y, z);
+			gird[i][j] = { x, y, z };
+		}
+		for (size_t j = 4 * gird_size / 5; j < gird_size; ++j)
+		{
+			x = R * cos(XM_PI / (gird_size - 1) * i);
+			y = shpangout_coord + (j - 4 * gird_size / 5) * (H / 2 - shpangout_W) / (gird_size / 5 - 1);
+			z = R * sin(XM_PI / (gird_size - 1) * i);
+
+			r_gird[i][j].pos = vec3(x, y, z);
+			gird[i][j] = { x, y, z };
+		}
+	}
+
+	Object* object = new Object(_pDevice, _pVxSh, _pPxSh, gird_size * gird_size, convert2DimArrayTo1(r_gird, gird_size, gird_size), D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+	_rs->pushObject(object);
+
+	for (size_t i = 0; i < gird_size; ++i)
+	{
+		for (int j = 0; j < gird_size; ++j)
+		{
+			std::cout << i << ", " << j << ": x: " << gird[i][j].x << " y: " << gird[i][j].y << " z: " << gird[i][j].z << ";\n";
+		}
+	}
+
+
+	surfInfo si = GenInterpBSplineSurface(gird_size, gird_size, gird, 3, 3, CentripetalMeshParams);
+	double  line1_u = 0, 
+			line1_v = 0.5,
+			line2_u = 0,
+			line2_v = 0;
+	bool line1 = false, line2 = true;
+	_rs->drawLineOnBSplineSurface(&si, line1_u, line1_v, line1);
+	double bigLineSize = getBsplineLineLength(&si, line2_u, line2_v, line2);
+	_rs->drawLineOnBSplineSurface(&si, line2_u, line2_v, line2);
+	double smallLineSize = getBsplineLineLength(&si, line2_u, line2_v, line2);
+	std::cout << "Big Line Length: " << bigLineSize << "\n";
+
+	size_t spline_gird_size = 500;
+	double A = bigLineSize / (spline_gird_size - 1);
+	double B = smallLineSize / (spline_gird_size - 1);
+
+	drappingInit is = { &si, line2_u, line2_v, line2, line1_u, line1_v, line1, A, B, spline_gird_size };
+	//makeDrappedGird_paralled(_rs, is);
+
+}
