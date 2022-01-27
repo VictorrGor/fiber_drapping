@@ -33,6 +33,26 @@ class RenderSys;
 
 //Left-handed^ (xOz surface) and Y-up
 
+class Camera
+{
+	vec3 lookAt;
+	vec3 position;
+	vec3 up;
+	float speed; //move speed
+	float rotationSpeed;
+public:
+	friend RenderSys;
+	Camera() : lookAt({ 1,0,0 }), position({ 0,0,0 }), up({0, 1, 0}), speed(0.05), rotationSpeed(0.01) {};
+	void moveForward();
+	void moveBackward();
+	void moveLeft();
+	void moveRight();
+	void moveUp();
+	void moveDown();
+
+	void rotateCamera(float XoZAngle, float YoZAngle);
+};
+
 
 class RenderSys
 {
@@ -150,9 +170,11 @@ class RenderSys
 	Interface* pInterface;
 	
 	int renderCount;
+
 public:
 	UINT width;
 	UINT height;
+	Camera mCamera;
 
 	RenderSys();
 	~RenderSys();

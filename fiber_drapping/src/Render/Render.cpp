@@ -55,7 +55,7 @@ void RenderSys::Render()
 		perFrame.ll = *(this->pointLightObjects.back());
 	}
 
-	static float t = 0.0f;
+	//static float t = 0.0f;
 	{
 		/* 
 		static DWORD dwTimeStart = 0;
@@ -72,9 +72,10 @@ void RenderSys::Render()
 		speed += deltaMouse.x * speedCoeff;
 		h += deltaMouse.y * speedCoeff;
 
-		DirectX::XMVECTOR Eye = DirectX::XMVectorSet(R * cos(speed), h, R * sin(speed), 0.0f);
-		DirectX::XMVECTOR At = DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
-		DirectX::XMVECTOR Up = DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+		mCamera.rotateCamera(deltaMouse.x, deltaMouse.y);
+		DirectX::XMVECTOR Eye = XMLoadFloat3(&mCamera.position);//DirectX::XMVectorSet(R * cos(speed), h, R * sin(speed), 0.0f);
+		DirectX::XMVECTOR At = XMVectorSet(mCamera.lookAt.x + mCamera.position.x, mCamera.lookAt.y + mCamera.position.y, mCamera.lookAt.z + mCamera.position.z, 0);//DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
+		DirectX::XMVECTOR Up = XMVectorSet(mCamera.up.x, mCamera.up.y, mCamera.up.z, 0);//DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
 		g_View = DirectX::XMMatrixLookAtLH(Eye, At, Up);
 		XMStoreFloat3(&perFrame.eyePos, Eye);
 	}
@@ -400,7 +401,8 @@ HRESULT RenderSys::InitObjects()
 	//testPlane(this, this->g_pd3dDevice, pVxSh, pPxSh);
 	//generateSurfaceByBSpline(this, this->g_pd3dDevice, pVxSh, pPxSh);
 	//generateSphere(this, g_pd3dDevice, pVxSh, pPxSh);
-	cornerDrapping(this, g_pd3dDevice, pVxSh, pPxSh);
+	//cornerDrapping(this, g_pd3dDevice, pVxSh, pPxSh);
+	cylinderDrapping(this, g_pd3dDevice, pVxSh, pPxSh);
 	//drawSinSurf(this, this->g_pd3dDevice, pVxSh, pPxSh);
 	//drawSinSurf(this, g_pd3dDevice, pVxSh, pPxSh);
 	//lighting_test(this, g_pd3dDevice, pVxSh, pPxSh);
@@ -489,4 +491,63 @@ void RenderSys::incrementRenderObjCount()
 void RenderSys::decrementRenderObjCount()
 {
 	renderCount--;
+}
+
+void Camera::moveForward()
+{
+	position.x += lookAt.x * speed;
+	position.y += lookAt.y * speed;
+	position.z += lookAt.z * speed;
+}
+
+
+void Camera::moveBackward()
+{
+	position.x -= lookAt.x * speed;
+	position.y -= lookAt.y * speed;
+	position.z -= lookAt.z * speed;
+}
+
+
+void Camera::moveLeft()
+{
+	static vec3 direction = { 0, 0, 0 };
+	XMStoreFloat3(&direction, XMVector3Cross(XMLoadFloat3(&lookAt), XMLoadFloat3(&up)));
+	position.x += direction.x * speed;
+	position.y += direction.y * speed;
+	position.z += direction.z * speed;
+}
+
+void Camera::moveRight()
+{
+	static vec3 direction = { 0, 0, 0 };
+	XMStoreFloat3(&direction, XMVector3Cross(XMLoadFloat3(&lookAt), XMLoadFloat3(&up)));
+	position.x -= direction.x * speed;
+	position.y -= direction.y * speed;
+	position.z -= direction.z * speed;
+}
+
+void Camera::moveUp()
+{
+	position.x += up.x * speed;
+	position.y += up.y * speed;
+	position.z += up.z * speed;
+}
+
+void Camera::moveDown()
+{
+	position.x -= up.x * speed;
+	position.y -= up.y * speed;
+	position.z -= up.z * speed;
+}
+
+void Camera::rotateCamera(float XoZAngle, float YoZAngle)
+{
+	XoZAngle *= rotationSpeed;
+	YoZAngle *= rotationSpeed;
+	auto upXM = XMLoadFloat3(&up);
+	auto lookAtXM = XMLoadFloat3(&lookAt);
+	auto rotatedLook =  XMVector3Rotate(lookAtXM, XMQuaternionRotationAxis(upXM, XoZAngle));
+	auto axis = XMVector3Cross(upXM, rotatedLook);
+	XMStoreFloat3(&lookAt, XMVector3Rotate(rotatedLook, XMQuaternionRotationAxis(axis, YoZAngle)));
 }

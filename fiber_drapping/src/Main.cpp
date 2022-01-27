@@ -1,13 +1,18 @@
 // This is a personal academic project. Dear PVS-Studio, please check it.
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
 #define DEBUG_CONSOLE
-#define NOLOG_ALL_OUTPUT
+#define NLOG_ALL_OUTPUT
 #include "Render/Render.h"
 
 #include "Render/Utils.h"
 
 #include <iostream>
 #include <fstream>
+
+#define VK_W_KEY 0x57
+#define VK_S_KEY 0x53
+#define VK_A_KEY 0x41
+#define VK_D_KEY 0x44
 
 RenderSys rs;
 
@@ -235,7 +240,38 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					rs.disableMaterials();
 					break;
 				}
+				case VK_W_KEY:
+				{
+					rs.mCamera.moveForward();
+					break;
+				}
+				case VK_S_KEY:
+				{
+					rs.mCamera.moveBackward();
+					break;
+				}
+				case VK_A_KEY:
+				{
+					rs.mCamera.moveLeft();
+					break;
+				}
+				case VK_D_KEY:
+				{
+					rs.mCamera.moveRight();
+					break;
+				}
+				case VK_CONTROL:
+				{
+					rs.mCamera.moveDown();
+					break;
+				}
+				case VK_SHIFT:
+				{
+					rs.mCamera.moveUp();
+					break;
+				}
 			};
+			std::cout << wParam << " pressed!\n" << "\n";
 			break;
 		}
 		case WM_MOUSEWHEEL:
